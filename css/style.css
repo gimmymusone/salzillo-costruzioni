@@ -1,0 +1,329 @@
+/* ══════════════════════════════════════════════════════════════
+   Salzillo Costruzioni — hero
+   Sistema ripreso da composites.archi (vedi ../references/DESIGN.md)
+   Font: TASA Orbiter — lo stesso della reference. Local Remote,
+   SIL Open Font License, distribuita su Google Fonts.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Palette: due stati, una sola manopola ────────────────────
+   --t è il quadrante del giorno: 0 = notte (#0F0F0F), 1 = cemento
+   (#CEC9C9). Ogni token è un color-mix fra i due estremi, quindi
+   basta scrubbare --t sullo scroll perché fondo, testi, righelli e
+   bordi virino *insieme* e in modo continuo — nessuno stacco, come
+   nella reference. L'arancio è l'unica costante: non vira mai.
+   La regia di --t sta in js/scroll.js (initTheme). */
+@property --t{ syntax:'<number>'; inherits:true; initial-value:0 }
+
+:root{
+  --t:0;
+  --mix:calc(var(--t) * 100%);
+
+  /* estremi: notte ─┬─ cemento */
+  --paper-d:#0F0F0F;              --paper-l:#CEC9C9;
+  --sunk-d:#131313;               --sunk-l:#C6C1C1;
+  --lift-d:#1C1C1C;               --lift-l:#BFBABA;
+  --ink-d:#AEAAAA;                --ink-l:#6E6A6A;
+  --ink2-d:#CEC9C9;               --ink2-l:#3A3838;
+  --mute-d:#7A7878;               --mute-l:#8F8B8B;
+  --max-d:#FFFFFF;                --max-l:#0F0F0F;
+  --rule-d:rgba(255,255,255,.10); --rule-l:rgba(0,0,0,.14);
+  --div-d:#3D3D3D;                --div-l:#A9A4A4;
+
+  /* valori vivi */
+  --paper:  color-mix(in srgb, var(--paper-l) var(--mix), var(--paper-d));
+  --sunk:   color-mix(in srgb, var(--sunk-l)  var(--mix), var(--sunk-d));
+  --lift:   color-mix(in srgb, var(--lift-l)  var(--mix), var(--lift-d));
+  --ink:    color-mix(in srgb, var(--ink-l)   var(--mix), var(--ink-d));
+  --ink2:   color-mix(in srgb, var(--ink2-l)  var(--mix), var(--ink2-d));
+  --mute:   color-mix(in srgb, var(--mute-l)  var(--mix), var(--mute-d));
+  --max:    color-mix(in srgb, var(--max-l)   var(--mix), var(--max-d));
+  --rule:   color-mix(in srgb, var(--rule-l)  var(--mix), var(--rule-d));
+  --divider:color-mix(in srgb, var(--div-l)   var(--mix), var(--div-d));
+
+  /* accento: identico alla reference, unico colore della pagina */
+  --accent:#F18010;
+  --accent-hi:#FF8300;
+  --brand-blu:#3A7CB8;         /* resta solo dentro il marchio */
+
+  /* Le due facce del faretto del capitolo piuma. In img-17 la riga
+     in corso è scura e leggibile, le altre — sia quelle già passate
+     sia quelle non ancora raggiunte — stanno a un passo dal fondo:
+     è quel contrasto a far leggere il movimento, non l'accensione.
+     La riga accesa resta un nero fisso e NON vira: è il trucco della
+     reference — sulla notte sparisce quasi del tutto e riemerge man
+     mano che arriva il cemento. Se virasse coi token vivi, a metà
+     strada avrebbe lo stesso valore del fondo e il titolo sparirebbe
+     per un attimo (verificato su cattura: succede davvero).
+     La riga spenta invece insegue il fondo, così resta a un soffio
+     da esso in ogni istante della virata. */
+  --ignite-off:color-mix(in srgb, #0F0F0F 14%, var(--paper));
+  --ignite-on:#0F0F0F;
+
+  /* Stesso problema, altra soluzione, per l'interfaccia di bordo
+     (logo, nav, micro-etichette): quella deve restare leggibile in
+     *ogni* istante, quindi non attraversa i grigi intermedi — scatta
+     di netto quando il fondo supera la metà. La commuta scroll.js
+     mettendo .is-light sul body. */
+  --chrome:#AEAAAA;
+  --chrome-soft:#7A7878;
+
+  /* alias verso i nomi storici usati in sections.css */
+  --bg:var(--paper);
+  --surface-1:var(--sunk);
+  --surface-2:var(--lift);
+  --text-display:var(--ink);
+  --text-bright:var(--ink2);
+  --text-muted:var(--mute);
+  --text-max:var(--max);
+  --divider-solid:var(--divider);
+
+  --pre-bg:#AEAAAA;
+  --radius-btn:2px;
+
+  /* ── Scala del display ─────────────────────────────────────
+     La reference scala sull'ALTEZZA del viewport, non sulla
+     larghezza (misurato: maiuscole a 18,6% di H sia a 1473×840
+     sia a 1920×1080). Quindi il corpo si esprime in vh, con un
+     tetto in cqw che impedisce alla riga di sfondare oltre il
+     debordo voluto sulle finestre strette e alte.
+     TASA Orbiter 600: altezza delle maiuscole = 0,696 em.
+     26,7vh × 0,696 = 18,6% di H. */
+  --display-size:min(26.7vh, 15.1cqw);
+  --display-lh:.73;
+  --display-weight:600;
+  --display-track:0em;
+  --grid-opacity:1;
+  --hero-top:26%;          /* posizione verticale del blocco titolo */
+  --hero-inset:2.5cqw;     /* margine laterale sinistro e destro */
+  /* Il debordo a destra è la firma della reference: l'ultima riga
+     esce dallo stage e viene tagliata (la X di PARADOX in img-02).
+     Il blocco titolo sfora a destra di (bleed − inset). */
+  --hero-bleed:5cqw;
+  --line-gap:0cqw;         /* distanza extra fra le due righe */
+  --align-1:left;          /* riga 1: da sinistra o da destra */
+  --align-2:right;         /* riga 2: da sinistra o da destra */
+}
+
+body.is-light{ --chrome:#161616; --chrome-soft:#5B5757 }
+/* senza scrub la virata scatta: la ammorbidisce una transition.
+   Va su :root, che è l'elemento su cui --t cambia davvero
+   (registrata con @property, quindi interpolabile). */
+:root.is-stepped{ transition:--t .45s ease }
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg);
+  font-family:'TASA Orbiter',Arial,Helvetica,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* Lo stage è un layer fisso: la pagina scorre sopra di lui.
+   `position:fixed` crea uno stacking context SEMPRE, anche senza
+   z-index — è per questo che l'header è dovuto uscire da qui e stare a
+   livello di <body> (vedi il commento su .hd). Il fondo cinematico resta
+   giustamente sotto #page: è la pagina che scorre sopra lo stage. */
+.app{display:flex;position:fixed;inset:0;height:100vh;width:100vw}
+
+/* ── STAGE ─────────────────────────────────────────────────── */
+.stage{
+  position:relative;
+  flex:1 1 auto;
+  height:100%;
+  min-width:0;
+  background:var(--bg);
+  overflow:hidden;
+  container-type:inline-size;   /* tutte le misure sono cqw: lo stage scala da solo */
+}
+
+/* Fondo cinematico: frame renderizzati + effetto + scrim */
+.bg{position:absolute;inset:0}
+.bg__scrim{
+  position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(to top, var(--bg) 0%, rgba(15,15,15,.55) 26%, rgba(15,15,15,0) 58%);
+}
+.bg__still{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;display:none}
+
+/* Il fronte della virata (img-13): il chiaro cala come una tenda
+   invece di comparire uniformemente. Il velo sta DENTRO .bg e SOTTO
+   i canvas, così la piuma resta visibile a cavallo del fronte; i
+   frame renderizzati vengono ritagliati al negativo, quindi sopra il
+   fronte c'è il nuovo fondo e sotto c'è ancora la scena vecchia.
+   Non è una seconda sorgente di verità sui colori: si spegne appena
+   la virata è compiuta, quando il suo colore e il fondo della pagina
+   coincidono e lo scambio non si vede. */
+.flip-veils{position:absolute;inset:0;pointer-events:none}
+.flip-veil{position:absolute;inset:0;display:block;opacity:0;will-change:clip-path}
+
+/* Canvas effetto */
+.fx{position:absolute;inset:0;width:100%;height:100%;display:block}
+.fx[hidden]{display:none}
+#seq{opacity:0}
+#fx{opacity:0}   /* la piuma si rivela via scroll, a viaggio bloccato */
+
+/* Marchio che si trasforma nella vista zenitale */
+.logo-morph{position:absolute;z-index:2;pointer-events:none;color:var(--text-display)}
+.logo-morph svg{width:100%;height:100%;display:block}
+.logo-morph .m-ring{stroke:#33526F}   /* anello: il blu del basamento nel render — è marchio, non palette */
+.logo-morph .m-mono{stroke:#9DA0A6}   /* monogramma: i solai chiari visti dall'alto */
+.fx-note{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  z-index:1;text-align:center;line-height:1.6;max-width:34cqw;
+  font-size:clamp(11px,1.1cqw,14px);color:var(--text-muted);
+  border:1px solid var(--rule);padding:1.4cqw 1.8cqw;
+}
+.fx-note[hidden]{display:none}
+.fx-note code{color:var(--text-display);font-family:ui-monospace,Menlo,monospace;font-size:.95em}
+
+/* ── Griglia a fili ────────────────────────────────────────── */
+.grid{position:absolute;inset:0;pointer-events:none;opacity:var(--grid-opacity);transition:opacity .3s}
+.grid span{position:absolute;background:var(--rule)}
+.grid__v       {left:50%;top:64%;width:1px;height:36%}
+.grid__h-left  {left:35%;bottom:5.5%;height:1px;width:15%}
+.grid__h-right {left:50%;bottom:5.5%;height:1px;width:15%}
+.grid__nav-rule{left:40%;top:4.4%;height:1px;width:20%}   /* nella ref il filo sta appena sopra INTRODUZIONE, non staccato */
+
+/* ── Header ────────────────────────────────────────────────── */
+/* La fascia alta della reference sta ~20px più su della nostra a
+   1920 (logo: ink a y 45 contro 64). Il filo della nav invece sta
+   più in basso, appena sopra INTRODUZIONE. Tutto in cqw, così la
+   fascia continua a scalare con lo stage. */
+/* fixed e non absolute: l'header sta a livello di <body>, fuori dai due
+   stacking context dello stage. z-index:5 per stare sopra #page (1).
+   Le misure restano in cqw ma senza container cadono sul viewport, che
+   è la stessa larghezza dello stage: i valori non cambiano. */
+.hd{position:fixed;inset:0 0 auto 0;padding:1.9cqw 2.5cqw 0;display:flex;align-items:flex-start;justify-content:space-between;z-index:5}
+.hd__logo{
+  display:flex;align-items:center;gap:.85cqw;text-decoration:none;
+  color:var(--chrome-soft);font-weight:600;font-size:clamp(13px,1.45cqw,20px);
+  letter-spacing:-.01em;
+}
+/* Il marchio eredita il colore via currentColor: vira col tema da
+   solo, senza una riga di JS. Il blu resta un'opzione (--brand-blu),
+   non un colore della pagina. */
+.hd__mark{display:block;width:2.9cqw;min-width:24px;color:var(--chrome);flex:0 0 auto}
+.hd__mark svg{display:block;width:100%;height:auto}
+.hd__wordmark{display:flex;flex-direction:column;line-height:1.05}
+.hd__wordmark span:last-child{color:var(--chrome)}
+/* Variante A — solo marchio: il testo esce e il simbolo cresce. */
+.hd__logo[data-logo="a"] .hd__wordmark{display:none}
+.hd__logo[data-logo="a"] .hd__mark{width:3.4cqw;min-width:28px}
+.hd .lbl{color:var(--chrome)}
+/* Le tre ancore della fascia non sono allineate fra loro nemmeno
+   nella reference: il logo sta più in alto, la voce di destra più
+   in basso. I due padding qui sotto sono tarati su quella misura
+   (ref a 1920: logo 45, INTRODUCTION 65, voce destra 67). */
+.hd__center{position:absolute;left:40%;top:1.9cqw;width:20%;display:flex;align-items:center;justify-content:space-between;padding-top:1.1cqw}
+.hd__right{display:flex;align-items:center;gap:.9cqw;text-decoration:none;padding-top:1.5cqw}
+
+.lbl{
+  font-size:clamp(9px,1.05cqw,13px);
+  font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--text-display);white-space:nowrap;
+}
+
+.icon-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.28cqw;background:none;border:0;cursor:pointer;padding:0}
+.icon-grid i{width:.42cqw;height:.42cqw;min-width:3px;min-height:3px;background:var(--chrome);display:block}
+.icon-blocks{display:flex;align-items:flex-end;gap:.14cqw}
+.icon-blocks i:first-child{width:.62cqw;height:.42cqw;min-width:5px;min-height:3px;background:var(--chrome)}
+.icon-blocks i:last-child {width:.42cqw;height:.62cqw;min-width:3px;min-height:5px;background:var(--chrome)}
+
+/* ── Titolo display ────────────────────────────────────────── */
+.hero{position:absolute;left:var(--hero-inset);right:calc(var(--hero-inset) - var(--hero-bleed));top:var(--hero-top);z-index:2}
+.display{
+  font-size:var(--display-size);
+  line-height:var(--display-lh);
+  font-weight:var(--display-weight);
+  letter-spacing:var(--display-track);
+  text-transform:uppercase;
+  color:var(--text-display);
+  white-space:nowrap;
+}
+.display .line{display:block;overflow:hidden}
+.display .line:first-child{text-align:var(--align-1)}
+.display .line:last-child {text-align:var(--align-2);margin-top:var(--line-gap)}
+.line__in{display:block;will-change:transform}
+.line--front{color:var(--text-display)}
+
+/* ── Lockup di brand ───────────────────────────────────────── */
+.lockup{
+  position:absolute;left:50%;bottom:9.5%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;line-height:1.04;
+  font-weight:700;font-size:clamp(16px,2.6cqw,42px);letter-spacing:-.01em;
+  text-transform:uppercase;text-align:center;z-index:2;
+}
+.lockup__a{color:var(--text-muted)}
+.lockup__b{color:var(--text-max)}
+
+/* ── Micro-UI d'angolo ─────────────────────────────────────── */
+.corner{position:absolute;bottom:3.4%;z-index:3}
+.corner--l{left:2.5cqw}
+.corner--r{right:2.5cqw}
+.corner .lbl{color:var(--chrome-soft);font-size:clamp(8px,.88cqw,11px);letter-spacing:.1em}
+
+/* ── Preloader ─────────────────────────────────────────────── */
+.preloader{position:absolute;inset:0;background:var(--pre-bg);z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:6%}
+.preloader__rule{position:absolute;left:0;top:50%;height:1px;width:0;background:#0F0F0F;opacity:.55}
+.preloader__lockup{display:flex;flex-direction:column;align-items:center;line-height:1.04;font-weight:700;font-size:clamp(16px,2.6cqw,42px);letter-spacing:-.01em;text-transform:uppercase}
+.preloader__lockup .lockup__a{color:#0F0F0F}
+.preloader__lockup .lockup__b{color:#6E6A6A}
+.preloader__pct{margin-top:1.4cqw;font-size:clamp(9px,.9cqw,12px);font-weight:700;color:#0F0F0F;letter-spacing:.08em}
+
+/* stato iniziale pre-intro */
+/* `.is-intro` sta sullo stage: l'header, che ora è suo fratello e non
+   più suo figlio, si raggiunge col combinatore di pari livello. */
+/* `.is-intro` sta sullo stage; l'header ora è fuori da .app, quindi lo
+   si raggiunge guardando dentro lo stage con :has(). Serve solo come
+   rete per l'istante prima che hero.js parta. */
+.is-intro .hero,.is-intro .lockup,.is-intro .corner,.is-intro .grid,
+#app:has(.is-intro) ~ .hd{opacity:0}
+
+/* ══ EDITOR ══════════════════════════════════════════════════ */
+.ed{
+  position:fixed;right:0;top:0;bottom:0;width:320px;z-index:100;
+  background:#0B0B0B;border-left:1px solid rgba(255,255,255,.08);
+  display:flex;flex-direction:column;color:#CEC9C9;font-size:12px;
+}
+.ed.is-hidden{display:none}
+.ed__hd{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.08);font-weight:700;letter-spacing:.12em;font-size:11px}
+.ed__hd button{background:none;border:0;color:#7A7878;font-size:20px;line-height:1;cursor:pointer}
+.ed__hd button:hover{color:#fff}
+.ed__body{flex:1;overflow-y:auto;padding:4px 0 20px}
+.ed__ft{display:flex;gap:6px;padding:12px;border-top:1px solid rgba(255,255,255,.08);flex-wrap:wrap}
+.ed__btn{flex:1;min-width:88px;background:#1C1C1C;border:1px solid rgba(255,255,255,.1);color:#CEC9C9;padding:8px;border-radius:2px;cursor:pointer;font-size:11px;font-family:inherit}
+.ed__btn:hover{background:#262626;color:#fff}
+.ed__btn--ghost{background:transparent}
+
+.ed__group{border-bottom:1px solid rgba(255,255,255,.06)}
+.ed__group > summary{padding:11px 16px;cursor:pointer;font-weight:700;letter-spacing:.1em;font-size:10px;color:#7A7878;list-style:none;text-transform:uppercase}
+.ed__group > summary::-webkit-details-marker{display:none}
+.ed__group > summary::before{content:"▸ ";display:inline-block;transition:transform .2s}
+.ed__group[open] > summary::before{content:"▾ "}
+.ed__group > summary:hover{color:#fff}
+.ed__fields{padding:2px 16px 14px}
+
+.f{margin-bottom:11px}
+.f label{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;color:#7A7878;font-size:10.5px;letter-spacing:.04em}
+.f label b{color:#AEAAAA;font-weight:600;font-variant-numeric:tabular-nums}
+.f input[type=text],.f textarea,.f select{
+  width:100%;background:#151515;border:1px solid rgba(255,255,255,.1);color:#CEC9C9;
+  padding:7px 8px;border-radius:2px;font-family:inherit;font-size:11.5px;resize:vertical;
+}
+.f input[type=text]:focus,.f textarea:focus,.f select:focus{outline:none;border-color:#3A7CB8}
+.f input[type=range]{width:100%;accent-color:#3A7CB8;background:transparent}
+.f input[type=color]{width:100%;height:28px;background:#151515;border:1px solid rgba(255,255,255,.1);border-radius:2px;cursor:pointer;padding:2px}
+.f--row{display:flex;gap:8px}
+.f--row > *{flex:1}
+.f__check{display:flex;align-items:center;gap:8px;color:#AEAAAA;cursor:pointer;font-size:11.5px}
+
+.ed__open{
+  position:fixed;right:0;top:50%;transform:translateY(-50%);
+  background:#1C1C1C;color:#AEAAAA;border:1px solid rgba(255,255,255,.12);border-right:0;
+  padding:14px 7px;cursor:pointer;writing-mode:vertical-rl;letter-spacing:.16em;font-size:10px;
+  font-family:inherit;font-weight:700;z-index:50;display:none;
+}
+.ed__open.is-visible{display:block}
+.ed__open:hover{color:#fff}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms !important;transition-duration:.01ms !important}
+}

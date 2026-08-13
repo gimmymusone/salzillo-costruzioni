@@ -1,0 +1,509 @@
+/* ══════════════════════════════════════════════════════════════
+   Sezioni della pagina che scorre sopra lo stage fisso.
+   Token e regole: references/DESIGN.md — 5 grigi + un solo
+   elemento colorato, radius 0, nessuna ombra, righelli 1px.
+   Scala fluida: tutto in rem su html{font-size:1.05vw}.
+   ══════════════════════════════════════════════════════════════ */
+
+html{font-size:1.05vw}
+@media (max-width:900px){ html{font-size:2.6vw} }
+
+/* La pagina è trasparente e non cattura i click, tranne dove serve */
+#page{position:relative;z-index:1;pointer-events:none}
+#page a, #page button, #page input, #page textarea, #page .contact{pointer-events:auto}
+
+#hero-spacer{height:300vh}
+
+/* Capitolo pinnato: il contenuto tiene mentre il fondo evolve */
+.chapter{height:400vh}
+.chapter .sticky, #s-cerniera .sticky, #s-cantieri .sticky,
+#s-ristrutturazioni .sticky,
+#s-via .sticky, #s-piuma .sticky, #s-cases .sticky, #s-storia .sticky{
+  position:sticky;top:0;height:100vh;overflow:hidden;
+  display:flex;flex-direction:column;justify-content:flex-end;
+  padding:2.5rem;
+}
+
+.sec-label{
+  font-size:.75rem;font-weight:700;letter-spacing:.12em;
+  color:var(--text-muted);text-transform:uppercase;margin-bottom:1.6rem;
+}
+/* Il numero di capitolo fra parentesi quadre, come in img-10 e img-15:
+   sta accanto alla dicitura, non al posto suo — la reference può
+   permettersi il solo numero, qui il visitatore deve anche capire
+   di che capitolo si parla. */
+.cap-num{color:var(--text-display);margin-right:.9em}
+.sec-display{
+  font-size:6.8rem;line-height:.78;font-weight:600;
+  letter-spacing:0;text-transform:uppercase;color:var(--text-display);
+  margin-bottom:2rem;
+}
+/* La finestra della riga respira sopra di un filo, e il filo si riprende
+   col margine negativo: la posizione non cambia, ma i diacritici delle
+   maiuscole (la Ù di PIÙ) smettono di essere tagliati dall'overflow —
+   con line-height .73 l'accento sta fuori dal content box.
+   Il reveal fa SALIRE le righe (yPercent 112 → 0): il bordo che deve
+   clippare è quello di sotto, e quello resta dov'è. */
+.sec-display .line{display:block;overflow:hidden;padding-top:.2em;margin-top:-.2em}
+.sec-display .line__in{display:block;will-change:transform}
+
+/* ── Il wipe: come compare ogni titolo ─────────────────────
+   Due fronti sullo stesso asse verticale, entrambi scrubbati da
+   js/type.js → wipeReveal(). `--wipe` è una maschera con stacco
+   netto (due stop alla stessa posizione): sopra il fronte il testo
+   c'è, sotto non c'è ancora — è il taglio a metà parola che si
+   vede in img-06. `--heat` viene dopo, riga per riga, e porta
+   l'arancio al colore di default.
+   Valori a riposo = 1: senza JS il titolo è semplicemente lì. */
+@property --wipe{ syntax:'<number>'; inherits:false; initial-value:1 }
+@property --heat{ syntax:'<number>'; inherits:false; initial-value:1 }
+
+.sec-display{--display-ink:var(--text-display)}
+.sec-display--q{--display-ink:var(--text-bright)}
+
+.sec-display:not(.ignite){
+  --wipe:1;
+  -webkit-mask-image:linear-gradient(to bottom,#000 calc(var(--wipe) * 100%),transparent calc(var(--wipe) * 100%));
+  mask-image:linear-gradient(to bottom,#000 calc(var(--wipe) * 100%),transparent calc(var(--wipe) * 100%));
+}
+.sec-display:not(.ignite) .line__in{
+  --heat:1;
+  color:color-mix(in srgb, var(--display-ink) calc(var(--heat) * 100%), var(--accent));
+}
+/* Enfasi bicolore: le ultime righe del titolo vanno al massimo di
+   contrasto — bianco puro sulla notte, nero sul cemento (`--max` vira
+   col tema, quindi è lo stesso attributo a fare entrambi i versi).
+   Si scrive su --display-ink, non su color, altrimenti scavalcherebbe
+   il raffreddamento del wipe e la riga non passerebbe mai dall'arancio.
+   `DESIGN.md` vieta il bianco puro sui titoli: è la riga sbagliata
+   corretta nel briefing — le catture della reference la smentiscono. */
+.sec-display .line__in.is-max{--display-ink:var(--text-max)}
+.sec-body{
+  font-size:1.05rem;line-height:1.5;font-weight:400;
+  color:var(--text-bright);max-width:34rem;
+}
+.todo{color:var(--text-muted);font-size:.85em;letter-spacing:.02em}
+
+/* ── Interstiziali (statement senza numero) ───────────────── */
+#s-via{height:250vh}
+#s-via .sticky--mid, #s-piuma .sticky--mid{justify-content:center}
+/* Stessa legge del display hero: il corpo si ancora all'ALTEZZA del
+   viewport (la reference fa così), con un tetto in vw perché la riga
+   non sfondi la colonna. Oggi è il tetto in vw a comandare: la copy
+   più lunga ("UN MODO DI COSTRUIRE", 11,8em) non ci sta al corpo
+   della ref — s03-paving misura maiuscole al 14,5% di H, qui si
+   arriva al 9,9%. Accorciata la copy (step 06), il termine in vh
+   prende il comando da solo. */
+.sec-display--st{font-size:min(20.8vh, 8.0vw);line-height:.73}
+/* Giustezza alternata: non è una riga più lunga, è un blocco costruito
+   su due allineamenti — e l'ultima riga deborda oltre il bordo destro,
+   come la hero. */
+.sec-display--alt .line--dx{text-align:right;margin-right:calc(-1 * var(--bleed-sez, 4vw))}
+/* L'altra faccia della stessa regola: una riga che non si allinea a
+   destra ma RIENTRA (img-23). Il padding sta sulla .line, non sul suo
+   contenuto: la maschera del wipe lavora sulla riga intera. */
+.line--rientro{padding-left:1.4em}
+.chapter--m{height:350vh}
+
+/* ── Sezioni 4 e 5: due colonne speculari ──────────────────
+   Nella reference la 4 ha l'oggetto a sinistra e il testo a destra
+   (img-10), la 5 è la sua immagine speculare (img-15). Lo scambio
+   avviene nella stessa transizione in cui il fondo vira.
+   Lo slot dell'oggetto resta VUOTO: lo riempie lo step 05 col
+   mattone. Qui si prepara solo il posto. */
+.chapter--duo .sticky{
+  display:grid;grid-template-columns:1fr 1fr;
+  align-items:center;column-gap:3rem;
+}
+.duo__testo{display:flex;flex-direction:column;justify-content:center;min-width:0}
+/* Due paragrafi corti affiancati invece di un blocco solo: nella
+   reference (img-10, img-15) stanno su circa un terzo di larghezza
+   ciascuno, sotto il titolo. */
+.duo__para{display:grid;grid-template-columns:1fr 1fr;gap:2.2rem;max-width:34rem}
+.duo__para .sec-body{max-width:none}
+.duo__oggetto{position:relative;min-width:0;align-self:stretch}
+/* Le due pelli del mattone: stessa sequenza in due valori, sovrapposte.
+   L'inversione è una dissolvenza fra le due, non una ritintura dei
+   pixel — così il chiaro-su-notte e lo scuro-su-cemento sono quelli
+   veri del bake. La manopola è la stessa dei filamenti (`onLight`). */
+.mattone__pel{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* Capitolo C: l'oggetto sta al centro-sinistra, il titolo a destra.
+   Col bake trasparente le crepe si aprono sul cemento della pagina e
+   arrivano fino al bordo del canvas, dove venivano tagliate di netto:
+   una linea verticale a metà schermo. La maschera le fa svanire invece
+   di troncarle — sul bordo destro, dove incontrano il titolo, e in
+   basso, dove escono dallo schermo. */
+.piuma__oggetto{
+  position:absolute;left:0;top:0;width:56%;height:100%;
+  pointer-events:none;
+  -webkit-mask-image:linear-gradient(to right,#000 74%,transparent 99%);
+  mask-image:linear-gradient(to right,#000 74%,transparent 99%);
+}
+/* default: oggetto a sinistra, testo a destra (sezione 4) */
+.chapter--duo .duo__oggetto{order:1}
+.chapter--duo .duo__testo  {order:2}
+/* speculare: testo a sinistra, oggetto a destra (sezione 5) */
+.chapter--duo.duo--specchio .duo__testo  {order:1}
+.chapter--duo.duo--specchio .duo__oggetto{order:2}
+
+/* Il disegno tecnico in basso a sinistra della sezione 5 (img-15):
+   linee grigie e un quadratino arancione fermo. */
+.duo__dia{display:block;width:15rem;height:11rem;margin-top:2.4rem}
+
+/* ── Capitolo piuma: le parole si accendono una alla volta ──
+   Il testo sta a destra e il campo di filamenti resta libero a
+   sinistra, come nella reference. Serve spazio di scroll: la
+   virata notte→cemento si compie tutta dentro questa sezione. */
+/* 600vh = 1.620 px per riga a viewport 1080, la misura del faretto
+   nella reference. A 320vh ne dava 864 e il faretto passava alla riga
+   dopo prima che si leggesse quella accesa. */
+#s-piuma{height:600vh}
+/* Il blocco è ancorato a destra ma le righe partono tutte dalla
+   stessa colonna, come DEFY / GRAVITY / WITH / ELEGANCE in img-17:
+   `width:max-content` fa sì che il blocco si stringa sulla riga più
+   lunga, e dentro le righe sono allineate a sinistra. Prima ogni
+   riga si allineava per conto suo a destra, e ballavano. */
+#s-piuma .sticky--mid{align-items:flex-end}
+#s-piuma .sec-display--st{width:max-content;max-width:52%;text-align:left}
+
+/* Faretto riga per riga: `--cur` va da 0 (quasi invisibile) a 1
+   (leggibile) ed è ciò che GSAP scrubba. Non si accumula — nella
+   ref le righe già passate tornano chiare come quelle non ancora
+   raggiunte, ed è quel contrasto a far leggere il movimento.
+   Il colore resta un color-mix, così la riga continua a seguire la
+   virata del tema mentre si accende: niente rgb congelato inline. */
+@property --cur{ syntax:'<number>'; inherits:false; initial-value:0 }
+.ignite .line{
+  --cur:0;
+  color:color-mix(in srgb, var(--ignite-on) calc(var(--cur) * 100%), var(--ignite-off));
+}
+/* Il quadratino d'accento sta su una colonna fissa a sinistra del
+   blocco e scende soltanto di riga in riga: la x non la tocca il JS. */
+.ignite{position:relative}
+.ignite__dot{
+  position:absolute;left:-3.4rem;top:0;width:.42rem;height:.42rem;
+  margin-top:-.21rem;
+  background:var(--accent);pointer-events:none;opacity:0;will-change:transform;
+}
+
+/* ── Perché Salzillo: sei chip che orbitano ───────────────── */
+/* Erano ~1.093 px in tutto — la sezione passava in un colpo di rotella.
+   450vh = ~1.200 px per voce. */
+#s-perche{background:var(--bg);padding:8rem 2.5rem;min-height:450vh}
+.perche{position:sticky;top:0;min-height:100vh;display:flex;flex-direction:column;
+        align-items:center;justify-content:center;gap:2.4rem}
+/* Le chip ORBITANO: stanno vicine al titolo, non ai bordi dello schermo.
+   A 78rem finivano contro il margine e la figura non si leggeva più come
+   un sistema attorno a un centro (img-35). */
+.orbita{position:relative;width:min(62rem,80vw);aspect-ratio:16/8}
+.orbita__titolo{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  font-size:min(13vh,7vw);line-height:.86;font-weight:600;text-transform:uppercase;
+  color:var(--text-display);text-align:center;pointer-events:none;
+}
+/* le chip: riquadro scuro, pallino arancione, etichetta, + che apre */
+.chip-o{
+  position:absolute;width:15rem;background:var(--surface-2);
+  border:1px solid var(--rule);padding:.7rem .9rem;
+}
+.chip-o summary{
+  display:flex;align-items:center;gap:.6rem;cursor:pointer;list-style:none;
+  font-size:.82rem;font-weight:600;letter-spacing:.02em;color:var(--text-display);
+}
+.chip-o summary::-webkit-details-marker{display:none}
+.chip-o__i{width:.5rem;height:.5rem;background:var(--accent);flex:0 0 auto}
+/* Il + sta in una cella sua, divisa da un filo: nella reference la chip è
+   due riquadri accostati, non un'etichetta con un segno in coda. */
+.chip-o summary b{
+  margin:-.7rem -.9rem -.7rem auto;padding:.7rem .9rem;
+  display:flex;align-items:center;align-self:stretch;
+  border-left:1px solid var(--rule);
+  color:var(--text-muted);font-weight:600;
+}
+.chip-o[open] summary b{color:var(--accent)}
+.chip-o .sec-body{font-size:.82rem;margin-top:.6rem;max-width:none}
+/* sei posizioni attorno al titolo */
+.chip-o--1{left:0;top:6%}
+.chip-o--2{right:0;top:6%}
+.chip-o--3{left:-2%;top:42%}
+.chip-o--4{right:-2%;top:42%}
+.chip-o--5{left:12%;bottom:2%}
+.chip-o--6{right:12%;bottom:2%}
+/* la CTA: l'unico fondo arancione della pagina, centrata sotto l'orbita
+   come in img-35. Il selettore è doppio apposta: .btn-accent, che la
+   allinea a sinistra, sta più in basso nel foglio e a parità di
+   specificità vincerebbe lei. */
+.perche .perche__cta{
+  display:inline-block;align-self:center;
+  text-decoration:none;background:var(--accent);color:#0F0F0F;
+  font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.85rem;
+  padding:1rem 2.2rem;border-radius:var(--radius-btn);
+}
+.perche .perche__cta:hover{background:var(--accent-hi)}
+
+/* ── Servizi & certificazioni ─────────────────────────────── */
+/* Erano ~114 px per card: nessun termine di paragone li difende.
+   320vh = ~430 px per card. */
+/* Il contenuto si incolla, come in tutte le altre sezioni alte: senza
+   sticky la griglia resta in cima e i restanti 220vh sono schermo nero.
+   (Difetto che veniva da prima dello step 06 — stessa causa della
+   sezione ristrutturazioni.) */
+#s-servizi{background:var(--bg);min-height:320vh}
+.servizi{
+  position:sticky;top:0;min-height:100vh;padding:8rem 2.5rem;
+  display:flex;flex-direction:column;justify-content:center;
+}
+.servizi__chips{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:2.4rem}
+.chip{
+  background:transparent;border:1px solid var(--divider-solid,#3D3D3D);
+  color:var(--text-muted);font-family:inherit;font-weight:600;
+  font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;
+  padding:.55rem 1.1rem;border-radius:0;cursor:pointer;
+}
+.chip:hover{color:var(--text-bright)}
+.chip.is-active{background:var(--surface-2);color:var(--text-max);border-color:var(--text-muted)}
+.servizi__grid{
+  /* tre colonne, non quattro: le voci sono sei e la griglia si chiude
+     in due righe piene invece di lasciare due celle vuote in fondo */
+  list-style:none;display:grid;grid-template-columns:repeat(3,1fr);gap:1px;
+  background:var(--divider-solid,#3D3D3D);border:1px solid var(--divider-solid,#3D3D3D);
+}
+.svc{background:var(--surface-1);padding:1.6rem;min-height:11rem}
+.svc[hidden]{display:none}
+.svc__t{
+  font-size:1.15rem;font-weight:600;text-transform:uppercase;
+  color:var(--text-display);margin-bottom:.7rem;line-height:1.1;
+}
+
+/* ── Storia: timeline orizzontale ─────────────────────────── */
+/* la timeline sta al centro dello schermo: con flex-end (l'impostazione
+   comune degli sticky) le tappe restavano schiacciate in basso sotto
+   settecento pixel di nero */
+#s-storia{height:400vh;background:var(--bg)}
+#s-storia .sticky{justify-content:center}
+#s-storia .sec-label{margin-bottom:2.4rem}
+.storia-track{
+  display:flex;gap:1.5rem;padding:0 2.5rem;
+  will-change:transform;width:max-content;align-items:stretch;
+}
+.tappa{
+  flex:0 0 auto;width:34vw;padding:2rem;
+  background:var(--surface-1);border:1px solid var(--divider-solid,#3D3D3D);
+}
+.tappa__anno{
+  display:block;font-size:5rem;font-weight:600;line-height:.9;
+  color:var(--text-display);margin-bottom:1.4rem;
+}
+
+/* ── Cerniera ─────────────────────────────────────────────── */
+/* 160vh e non 250: spezzando la domanda in due schermate (step 06) la
+   sua durata complessiva era raddoppiata senza che nessuno lo volesse —
+   5.400 px per quattro righe, il doppio della reference. Due sezioni da
+   160vh fanno 3.456 px in tutto, 864 px per riga. */
+#s-cerniera{height:160vh}
+#s-cerniera .sticky{justify-content:center}
+/* La cerniera è il secondo punto di misura della scala: nella ref
+   (img-23) le maiuscole stanno al 10,2% di H. 14,7vh × 0,696 = 10,2%.
+   Il tetto in vw è tarato su "DI CHI LA COSTRUISCE?" (11,44em), che
+   a 1920 riempie la colonna esatta: qui i due termini coincidono. */
+.sec-display--q{font-size:min(14.7vh, 8.2vw);line-height:.73;color:var(--text-bright)}
+
+/* 6.2 — la seconda metà della domanda (stessa durata della prima) */
+#s-cerniera-b{height:160vh}
+#s-cerniera-b .sticky{
+  position:sticky;top:0;height:100vh;overflow:hidden;
+  display:flex;flex-direction:column;justify-content:center;
+  align-items:flex-end;padding:2.5rem;
+}
+.sec-display--dx{text-align:right}
+/* il diagramma cala dal bordo alto, come in img-25 */
+.cerniera__dia{
+  position:absolute;top:0;right:14%;width:18rem;height:13rem;
+  display:block;opacity:.7;
+}
+
+/* ── Scelta dei lavori: le due card su fondo notte ─────────── */
+#s-cases{height:340vh}
+#s-cases .sticky--cases{justify-content:center;align-items:center;padding:2.5rem}
+
+/* Il velo è ciò che si apre: parte ritagliato sulla card e cresce
+   fino a coprire lo schermo. Il suo colore è il cemento *fisso*,
+   così quando arriva a pieno schermo coincide esattamente col
+   --paper della pagina (che nel frattempo è virato) e sparisce
+   senza che si veda il passaggio di consegne. */
+.cases-veil{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:var(--paper-l);opacity:0;
+  clip-path:inset(50% 50% 50% 50%);will-change:clip-path;
+}
+.cases-choice{
+  position:relative;z-index:1;
+  display:flex;gap:3.4rem;align-items:stretch;justify-content:center;
+  width:100%;max-width:52rem;
+}
+.case-card{
+  position:relative;flex:1 1 0;aspect-ratio:5/6;
+  background:var(--paper-l);color:#0F0F0F;text-decoration:none;
+  display:flex;flex-direction:column;justify-content:flex-end;
+  padding:1.6rem;overflow:hidden;
+}
+.case-card__dia{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* Il corpo è tarato sulla parola più lunga, RISTRUTTURAZIONI (16 lettere
+   contro le 12 di RENOVATION): a 2,4rem sfondava la colonna e il browser
+   la spezzava col trattino. Sta su una riga sola, come nella reference. */
+.case-card__t{
+  position:relative;font-size:2.1rem;font-weight:600;line-height:.88;
+  text-transform:uppercase;letter-spacing:-.01em;color:#0F0F0F;
+  hyphens:none;
+}
+.case-card__ft{
+  position:relative;display:flex;justify-content:space-between;align-items:baseline;
+  margin-top:1.1rem;padding-top:.7rem;border-top:1px solid rgba(0,0,0,.55);
+}
+.case-card__ft .lbl{color:#0F0F0F;font-size:.72rem}
+
+/* Nella reference l'arancione è riservato al DIAGRAMMA: il titolo della
+   card resta nero sempre. Era questo il titolo arancione di img-27 —
+   uno stato di hover, non un colore fisso.
+   Lo hover della ref (img-28) fa un'altra cosa: la card puntata si
+   completa e l'altra si spegne. */
+.cases-choice:hover .case-card{opacity:.45}
+.cases-choice:hover .case-card:hover{opacity:1}
+.case-card,.case-card__t{transition:opacity .35s ease}
+
+/* ── Cantieri: galleria orizzontale, su cemento ─────────────
+   Foto ORIZZONTALI e piccole (≈465×310 nella reference), staccate fra
+   loro. Prima erano due lastroni da 56vw × 58vh: era quello a far
+   sembrare la galleria ferma, non la durata — che è già più lenta
+   della reference e non va toccata. */
+#s-cantieri, #s-ristrutturazioni{height:500vh;background:var(--bg)}
+#s-cantieri .sticky--wide, #s-ristrutturazioni .sticky--wide{
+  justify-content:center;padding:2.5rem 0;
+}
+.sec-label--cases{padding:0 2.5rem}
+.galleria{position:relative}
+/* il nome in alto al centro, grande e nero: cambia mentre la track scorre */
+.galleria__nome{
+  position:absolute;top:9%;left:0;right:0;text-align:center;
+  font-size:3.4rem;font-weight:600;line-height:1;text-transform:uppercase;
+  color:var(--text-max);letter-spacing:-.01em;pointer-events:none;
+}
+/* la categoria resta ferma in basso a sinistra, lockup bicolore su due
+   righe: nella reference (img-32) è un blocco grande — CONSTRUCTION/ in
+   grigio sopra, RESIDENTIAL in nero sotto — non una micro-etichetta. */
+.galleria__cat{
+  position:absolute;left:2.5rem;bottom:7%;
+  font-size:1.7rem;font-weight:600;line-height:1.02;letter-spacing:-.005em;
+  text-transform:uppercase;color:var(--text-max);
+}
+.galleria__cat span{display:block;color:var(--text-muted)}
+.cases-track{
+  display:flex;gap:1.5rem;padding:0 2.5rem;
+  will-change:transform;width:max-content;align-items:center;
+}
+.case{
+  position:relative;flex:0 0 auto;
+  width:26vw;aspect-ratio:465/310;
+}
+.case img{width:100%;height:100%;object-fit:cover;display:block;background:var(--surface-2)}
+/* il contatore in alto a sinistra della card, come nella ref */
+.case__n{
+  position:absolute;top:.7rem;left:.8rem;
+  font-size:.72rem;font-weight:700;letter-spacing:.08em;color:#fff;
+  mix-blend-mode:difference;
+}
+/* i posti delle ristrutturazioni: la struttura c'è, le foto no */
+.case--vuota .case__posto{
+  width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+  border:1px dashed var(--divider-solid,#3D3D3D);background:var(--surface-2);
+}
+.case--vuota .case__posto .todo{font-size:.78rem;letter-spacing:.06em}
+/* niente riquadro né gradiente: su cemento la foto sta da sola e
+   la didascalia è il lockup bicolore in basso, come nella reference */
+/* titolo e didascalia impilati a sinistra: allineati ai due estremi
+   della card, l'etichetta finiva accanto al titolo della card dopo */
+.case__meta{display:flex;flex-direction:column;align-items:flex-start;gap:.5rem}
+.case__title{
+  font-size:2.2rem;font-weight:600;line-height:.92;
+  text-transform:uppercase;color:var(--text-max);
+}
+.case__cat{display:block;color:var(--text-muted)}
+.case__meta .lbl{color:var(--text-muted)}
+
+/* ── Contatti ─────────────────────────────────────────────── */
+/* La reference dà 3.240 px al finale: non deve arrivare di colpo. */
+#s-contatti{background:var(--surface-1);border-top:1px solid var(--rule);min-height:275vh}
+.contact{position:sticky;top:0;min-height:100vh;display:flex;flex-direction:column;justify-content:flex-end;padding:6rem 2.5rem 2rem}
+.sec-display--sm{font-size:5.4rem}
+.contact__cols{
+  display:grid;grid-template-columns:1fr 1fr;gap:3rem;
+  padding:3rem 0;border-top:1px solid var(--rule);
+}
+.contact__block .lbl{display:block;margin:1.6rem 0 .5rem;color:var(--text-muted)}
+.contact__block .lbl:first-child{margin-top:0}
+.contact__form{display:flex;flex-direction:column;max-width:30rem}
+.contact__form .lbl{margin:1.1rem 0 .4rem;color:var(--text-muted)}
+.contact__form input,.contact__form textarea{
+  background:transparent;border:0;border-bottom:1px solid var(--divider-solid,#3D3D3D);
+  color:var(--text-bright);font-family:inherit;font-size:1rem;padding:.5rem 0;
+  resize:vertical;
+}
+.contact__form input:focus,.contact__form textarea:focus{outline:none;border-bottom-color:var(--text-bright)}
+/* l'unico elemento colorato della pagina */
+.btn-accent{
+  margin-top:2rem;align-self:flex-start;
+  background:var(--accent);color:#0F0F0F;border:0;border-radius:var(--radius-btn);
+  font-family:inherit;font-weight:700;font-size:.9rem;letter-spacing:.08em;text-transform:uppercase;
+  padding:1rem 2.2rem;cursor:pointer;
+}
+.btn-accent:hover{filter:brightness(1.12)}
+.contact__foot{
+  display:flex;justify-content:space-between;gap:1rem;
+  padding-top:1.4rem;border-top:1px solid var(--rule);
+}
+
+/* ── Mobile ───────────────────────────────────────────────── */
+@media (max-width:900px){
+  #hero-spacer{height:120vh}
+  .chapter, .chapter--m{height:auto}
+  .chapter .sticky, #s-cerniera .sticky, #s-cantieri .sticky,
+  #s-ristrutturazioni .sticky,
+  #s-via .sticky, #s-piuma .sticky, #s-cases .sticky, #s-storia .sticky{
+    position:static;height:auto;min-height:70vh;padding:1.8rem;
+  }
+  #s-via,#s-piuma,#s-cases,#s-cerniera,#s-cantieri,#s-ristrutturazioni,#s-storia{height:auto}
+  #s-cerniera-b{height:auto}
+  #s-cerniera-b .sticky{position:static;height:auto;min-height:70vh;padding:1.8rem}
+  #s-piuma .sticky--mid{text-align:left;align-items:flex-start}
+  #s-piuma .sec-display--st{max-width:none}
+  .cases-choice{flex-direction:column;gap:1.4rem;max-width:none}
+  .case-card{aspect-ratio:4/3}
+  .cases-veil{display:none}          /* niente apertura: le card restano card */
+  .bg__still{display:block}
+  /* la galleria si impila: nome e categoria tornano in flusso, altrimenti
+     restano in posizione assoluta sopra le foto e spariscono */
+  .galleria__nome,.galleria__cat{position:static;text-align:left;padding:0 1.8rem}
+  .galleria__nome{font-size:2.4rem;margin-bottom:1.2rem}
+  .galleria__cat{font-size:1.3rem;margin-top:1.2rem}
+  .cases-track,.storia-track{flex-direction:column;width:auto;padding:0 1.8rem}
+  .case{width:100%}
+  .case img{height:42vh}
+  .tappa{width:100%}
+  .sec-display{font-size:4.2rem}
+  .sec-display--q{font-size:3.2rem}
+  .sec-display--st{font-size:3.6rem}
+  .servizi,.contact,.perche{position:static;min-height:0;padding:3rem 1.8rem}
+  #s-servizi{min-height:0}
+  #s-contatti{min-height:0}
+  #s-perche{min-height:0;padding:3rem 0}
+  .servizi__grid{grid-template-columns:1fr 1fr}
+  .orbita{aspect-ratio:auto;display:flex;flex-direction:column;gap:.8rem}
+  .orbita__titolo{position:static;font-size:3.2rem;margin-bottom:1rem}
+  .chip-o{position:static;width:100%}
+  .contact__cols{grid-template-columns:1fr}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .cases-track,.storia-track{transform:none !important}
+}
