@@ -12,7 +12,7 @@
    ─── Come sostituirlo con l'effetto "mattone" ───
    Crea js/effects/brick.js che registra un oggetto con la stessa
    forma di questo (id, name, params, schema, draw) via FX.register(),
-   poi selezionalo dal menu "Effetto" nell'editor. Nient'altro.
+   poi attivalo con FX.use('<id>') in js/hero.js. Nient'altro.
    ══════════════════════════════════════════════════════════════ */
 
 window.FX = window.FX || {

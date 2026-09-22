@@ -58,7 +58,7 @@ window.HERO = (function(){
       .add(()=>{
         if(window.SEQ && !SEQ.ready){
           tl.pause();
-          SEQ.whenReady(()=>tl.play(), 4000);
+          SEQ.whenReady(()=>tl.play(), 8000);
         }
       })
 
@@ -135,7 +135,7 @@ window.HERO = (function(){
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 
-  /* Esc salta l'intro: stava nell'editor, che ora è staccato */
+  /* Esc salta l'intro */
   addEventListener('keydown', e=>{ if(e.key === 'Escape') skip(); });
 
   return {play, skip, get timeline(){return tl;}};

@@ -22,6 +22,65 @@
    SEQ non è ancora migrato qui sopra: porta con sé la calibrazione
    del match-cut e spostarla in mezzo a una revisione non vale il
    rischio. È la semplificazione naturale dello step 07. */
+/* ── coda di caricamento condivisa ──────────────────────────
+   Online i frame arrivano dalla rete: sparare ~1000 richieste
+   insieme metteva la torre in fila dietro al mattone, e lo scrub
+   saltava sui buchi. Qui: ogni URL si scarica UNA volta sola
+   (i tre slot del mattone condividono gli stessi file), al massimo
+   MAX richieste in volo, e la priorità 0 (torre) passa sempre
+   davanti alla 1 (mattone). */
+window.CODA = (function(){
+  const MAX = 6;
+  const cache = new Map();          /* url → {im, fatto, ok, cbs} */
+  const file  = [[], []];
+  let attivi  = 0;
+
+  function pompa(){
+    while(attivi < MAX){
+      const url = file[0].shift() || file[1].shift();
+      if(!url) return;
+      attivi++;
+      const e  = cache.get(url);
+      const im = new Image();
+      const fine = ok=>{
+        attivi--;
+        e.fatto = true; e.ok = ok; e.im = ok ? im : null;
+        e.cbs.splice(0).forEach(cb=>cb(e.im));
+        pompa();
+      };
+      im.onload  = ()=>fine(true);
+      im.onerror = ()=>fine(false);
+      im.src = url;
+    }
+  }
+
+  function prendi(url, prio, cb){
+    let e = cache.get(url);
+    if(e){
+      if(e.fatto) cb(e.im); else e.cbs.push(cb);
+      return;
+    }
+    cache.set(url, e = {im:null, fatto:false, ok:false, cbs:[cb]});
+    file[prio ? 1 : 0].push(url);
+    pompa();
+  }
+
+  /* dal grosso al fine: prima un fotogramma ogni 16, poi ogni 8, 4,
+     2, 1. Dopo pochi file lo scrub copre già tutta la corsa (a scatti
+     larghi) e si infittisce mentre scorri, invece di avere metà
+     sequenza nitida e l'altra metà vuota. */
+  function ordine(n){
+    const out = [], visto = new Uint8Array(n);
+    [16, 8, 4, 2, 1].forEach(passo=>{
+      for(let i=0;i<n;i+=passo) if(!visto[i]){ visto[i]=1; out.push(i); }
+    });
+    if(!visto[n-1]) out.push(n-1);
+    return out;
+  }
+
+  return { prendi, ordine };
+})();
+
 window.FRAMESEQ = function(canvas, opts){
   const n    = opts.count;
   const path = opts.path;
@@ -29,14 +88,13 @@ window.FRAMESEQ = function(canvas, opts){
   const img  = new Array(n).fill(null);
   let drawn  = -1, avviato = false;
 
-  function carica(i){
-    const im = new Image();
-    im.onload = ()=>{ img[i] = im; if(drawn === i) drawn = -1; };
-    im.src = path(i);
-  }
   function preload(){
     if(avviato) return; avviato = true;
-    for(let i=0;i<n;i++) setTimeout(()=>carica(i), i*10);
+    CODA.ordine(n).forEach(i=>CODA.prendi(path(i), 1, im=>{
+      if(!im) return;
+      img[i] = im;
+      drawn = -1;      /* un vicino più preciso può essere appena arrivato */
+    }));
   }
   function vicino(i){
     if(img[i]) return img[i];
@@ -91,23 +149,37 @@ window.SEQ = (function(){
 
   /* ── caricamento progressivo ─────────────────────────────── */
   function loadFrame(i, cb){
-    const im = new Image();
-    im.onload  = ()=>{ images[i] = im; if(cb) cb(true); if(state.shown) draw(true); };
-    im.onerror = ()=>{ if(cb) cb(false); };
-    im.src = framePath(i);
+    CODA.prendi(framePath(i), 0, im=>{
+      if(im){ images[i] = im; if(state.shown) draw(true); }
+      if(cb) cb(!!im);
+    });
   }
+
+  /* Il preloader aspetta il primo frame E la passata grossa (uno ogni
+     8 = 30 file, ~650 KB): così all'uscita dell'intro la discesa ha
+     già la sua forma intera. Il resto si infittisce in coda. */
+  const PASSATA = 8;
 
   function startLoading(){
     if(!canvas) return;
-    loadFrame(0, ok=>{
+    /* sotto i 900px il canvas non si usa (fondi fissi): basta il primo */
+    const mobile = matchMedia('(max-width: 900px)').matches;
+    const pronto = ()=>{
+      if(state.ready) return;
       state.ready = true;
-      state.loadFailed = !ok;
       state.readyCbs.splice(0).forEach(f=>f());
-      if(ok){
-        sizeLogoMorph();
-        for(let i=1;i<FRAME_COUNT;i++) setTimeout(()=>loadFrame(i), i*12);
-      }
+    };
+    /* tutta la torre va in coda SUBITO, prima che il mattone
+       (priorità 1) trovi slot liberi mentre arriva il primo frame */
+    const ordine = mobile ? [] : CODA.ordine(FRAME_COUNT).filter(i=>i);
+    let mancano = 1 + ordine.filter(i=>i % PASSATA === 0).length;
+    const segna = ()=>{ if(--mancano === 0) pronto(); };
+    loadFrame(0, ok=>{
+      state.loadFailed = !ok;
+      if(ok) sizeLogoMorph(); else return pronto();
+      segna();
     });
+    ordine.forEach(i=>loadFrame(i, ()=>{ if(i % PASSATA === 0) segna(); }));
   }
 
   function whenReady(cb, timeout){
