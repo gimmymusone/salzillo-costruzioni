@@ -24,8 +24,12 @@
 window.BRICK = (function(){
 
   const N = 120;
+  /* Come per le silhouette della torre: i fotogrammi sono già stati
+     rifatti tenendo gli stessi nomi, e il browser serviva i vecchi
+     dalla cache senza dare segno. Rifatto il bake, si alza il numero. */
+  const VER = 2;
   const percorso = valore => i =>
-    `assets/mattone/${valore}/m_${String(i+1).padStart(3,'0')}.webp`;
+    `assets/mattone/${valore}/m_${String(i+1).padStart(3,'0')}.webp?v=${VER}`;
 
   const slot = [];   /* {el, seqChiaro, seqScuro, da, a} */
 

@@ -10,7 +10,8 @@
    (#CEC9C9). Ogni token è un color-mix fra i due estremi, quindi
    basta scrubbare --t sullo scroll perché fondo, testi, righelli e
    bordi virino *insieme* e in modo continuo — nessuno stacco, come
-   nella reference. L'arancio è l'unica costante: non vira mai.
+   nella reference. L'accento è l'unica costante: non vira mai. Era
+   l'arancio della reference; dal 2026-09-23 è il blu del marchio.
    La regia di --t sta in js/scroll.js (initTheme). */
 @property --t{ syntax:'<number>'; inherits:true; initial-value:0 }
 
@@ -41,8 +42,12 @@
   --divider:color-mix(in srgb, var(--div-l)   var(--mix), var(--div-d));
 
   /* accento: identico alla reference, unico colore della pagina */
-  --accent:#F18010;
-  --accent-hi:#FF8300;
+  --marchio-blu:#4A6C93;       /* il blu istituzionale di assets/logo/marchio.svg */
+  /* Accento = blu del marchio (committente, 2026-09-23: «cambia tutti i
+     dettagli in arancio con lo stesso blu»). Era #F18010 / #FF8300. */
+  --accent:var(--marchio-blu);
+  --accent-hi:#5B80AA;
+  --accent-ink:#FFFFFF;        /* testo sopra l'accento: il nero sul blu non si leggeva */
   --brand-blu:#3A7CB8;         /* resta solo dentro il marchio */
 
   /* Le due facce del faretto del capitolo piuma. In img-17 la riga
@@ -78,7 +83,7 @@
   --divider-solid:var(--divider);
 
   --pre-bg:#AEAAAA;
-  --radius-btn:2px;
+  --radius-btn:6px;             /* angoli appena arrotondati (committente, 2026-09-24) */
 
   /* ── Scala del display ─────────────────────────────────────
      La reference scala sull'ALTEZZA del viewport, non sulla
@@ -88,20 +93,67 @@
      debordo voluto sulle finestre strette e alte.
      TASA Orbiter 600: altezza delle maiuscole = 0,696 em.
      26,7vh × 0,696 = 18,6% di H. */
-  --display-size:min(26.7vh, 15.1cqw);
+  /* −5% sul corpo calcolato qui sopra, poi un secondo −10% chiesto dal
+     vivo guardando la hero (2026-09-23): in tutto −14,5% rispetto al
+     titolo storico. Le maiuscole scendono al ~15,9% di H — sotto il
+     18,6% della reference, che però misura DUE righe: con tre blocchi
+     l'ingombro complessivo resta lo stesso e i vuoti fra le parole
+     diventano abbastanza larghi da far vedere la torre. */
+  --display-size:min(22.9vh, 12.9cqw);
   --display-lh:.73;
   --display-weight:600;
   --display-track:0em;
   --grid-opacity:1;
-  --hero-top:26%;          /* posizione verticale del blocco titolo */
+  /* Il titolo scende al centro ottico dello stage (2026-09-23, era 13%):
+     col corpo più piccolo restava aria sotto, e il blocco si leggeva
+     appeso all'header invece che posato in mezzo allo schermo. */
+  --hero-top:18%;          /* posizione verticale del blocco titolo */
   --hero-inset:2.5cqw;     /* margine laterale sinistro e destro */
-  /* Il debordo a destra è la firma della reference: l'ultima riga
-     esce dallo stage e viene tagliata (la X di PARADOX in img-02).
-     Il blocco titolo sfora a destra di (bleed − inset). */
-  --hero-bleed:5cqw;
-  --line-gap:0cqw;         /* distanza extra fra le due righe */
-  --align-1:left;          /* riga 1: da sinistra o da destra */
-  --align-2:right;         /* riga 2: da sinistra o da destra */
+  /* Il debordo a destra era la firma della reference: l'ultima riga
+     usciva dallo stage e veniva tagliata (la X di PARADOX in img-02).
+     AZZERATO il 2026-09-23, per scelta: col titolo distribuito su tre
+     blocchi il respiro lo danno i vuoti fra le parole, e il taglio a
+     metà lettera restava a leggersi come un errore. Rimetterlo è una
+     riga sola — era 5cqw. */
+  --hero-bleed:0cqw;
+  --line-gap:0cqw;         /* distanza extra fra le righe, caso a 2 blocchi */
+  --align-1:left;          /* COSTRUITO: da sinistra */
+  --align-2:left;          /* PER: a sinistra come le altre due (2026-09-23) */
+  --align-3:left;          /* RESTARE: da sinistra, stessa colonna di COSTRUITO */
+  /* l'aria fra i tre blocchi: in em, così segue il corpo del titolo */
+  --salto-2:.06em;
+  --salto-3:.06em;
+
+  /* Correzione colore dei frame renderizzati (2026-09-23). Il bake è
+     in "Standard", senza tone mapping: schiaccia i neri, e allo zenit
+     la torre diventa una macchia. Qui si sollevano le ombre a valle,
+     invece di rifare il render (ore di Cycles). Il tetto è il
+     match-cut: il marchio deve restare CHIARO SU FONDO SCURO, o il
+     passaggio marchio → palazzo si smonta.
+     Gradazioni provate: timida 1.12/.97 · media 1.20/.95 · decisa 1.30/.92 */
+  --fondo-luce:1.2;
+  --fondo-contrasto:.95;
+  --scrim-forza:.42;       /* il velo scuro sulla metà bassa: era .55 */
+}
+
+/* I corpi delle copy alternative stanno QUI e non in varianti.js: da lì
+   finivano come stile inline su <html> e avrebbero battuto le regole
+   per il telefono qui sotto. Sono i valori storici meno il 5%. */
+[data-copia="2"]{--display-size:min(18.2vh, 10.3cqw)}
+[data-copia="3"]{--display-size:min(18.4vh, 10.4cqw)}
+
+/* Sul telefono il rapporto si rovescia: l'altezza abbonda e a comandare
+   è la larghezza, quindi il tetto in cqw va alzato fin dove `nowrap` lo
+   consente e la guardia in vh abbassata perché regga anche il telefono
+   in orizzontale.
+   Il tetto NON è a occhio: COSTRUITO misura 5,60em (misurato con un
+   Range sul testo vero, non stimato), e 95cqw utili / 5,60 = 16,96cqw.
+   16,5cqw teneva il margine per il side bearing del glifo; col −10%
+   sul corpo scende a 14,9cqw e il margine cresce ancora. */
+@media (max-width:900px){
+  :root{ --display-size:min(18.9vh, 14.9cqw); --hero-top:21% }
+  [data-copia="2"]{--display-size:min(18.9vh, 10.3cqw)}
+  [data-copia="3"]{--display-size:min(18.9vh, 10.4cqw)}
 }
 
 body.is-light{ --chrome:#161616; --chrome-soft:#5B5757 }
@@ -139,7 +191,9 @@ body{
 .bg{position:absolute;inset:0}
 .bg__scrim{
   position:absolute;inset:0;pointer-events:none;
-  background:linear-gradient(to top, var(--bg) 0%, rgba(15,15,15,.55) 26%, rgba(15,15,15,0) 58%);
+  /* il velo alleggerito (2026-09-23): era .55 al 26%, e spegneva la
+     torre proprio nella fascia dove il titolo lascia i vuoti */
+  background:linear-gradient(to top, var(--bg) 0%, rgba(15,15,15,var(--scrim-forza)) 26%, rgba(15,15,15,0) 58%);
 }
 .bg__still{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;display:none}
 
@@ -157,8 +211,26 @@ body{
 /* Canvas effetto */
 .fx{position:absolute;inset:0;width:100%;height:100%;display:block}
 .fx[hidden]{display:none}
-#seq{opacity:0}
+/* la correzione sta sul canvas, non nel disegno: ctx.filter costerebbe
+   a ogni frame dello scrub, qui la paga la GPU una volta sola */
+#seq, #seqFront{opacity:0;filter:brightness(var(--fondo-luce)) contrast(var(--fondo-contrasto))}
+/* Il primo piano deve stare SOPRA la hero (z 2) e sotto gli angoli (3),
+   che sono chrome e non vanno mai coperti: stesso z, ma prima nel DOM.
+   Sopra l'header (5) non ci arriva mai. Stesso filtro del fondo, o i
+   due palazzi avrebbero due luci diverse. */
+#seqFront{z-index:3;pointer-events:none}
+/* Sonda della baseline: un elemento vuoto in linea, alto zero. Il suo
+   bordo inferiore cade sulla baseline della riga, ed è così che
+   js/scroll.js sa dove finisce davvero il piede della lettera che
+   tiene intera. Non occupa spazio e non si vede. */
+.base-sonda{display:inline-block;width:0;height:0}
 #fx{opacity:0}   /* la piuma si rivela via scroll, a viaggio bloccato */
+/* Il nido d'ape (2026-09-24) prende il posto dei filamenti: stesso
+   momento, stessa dissolvenza. Tratto un filo più scuro del cemento. */
+.nido{position:absolute;inset:0;display:block;opacity:0;visibility:hidden;color:#B3AEAE;
+  -webkit-mask-image:linear-gradient(to bottom right,#fff,transparent 70%);
+  mask-image:linear-gradient(to bottom right,#fff,transparent 70%);
+  pointer-events:none}
 
 /* Marchio che si trasforma nella vista zenitale */
 .logo-morph{position:absolute;z-index:2;pointer-events:none;color:var(--text-display)}
@@ -200,10 +272,16 @@ body{
 /* Il marchio eredita il colore via currentColor: vira col tema da
    solo, senza una riga di JS. Il blu resta un'opzione (--brand-blu),
    non un colore della pagina. */
-.hd__mark{display:block;width:2.9cqw;min-width:24px;color:var(--chrome);flex:0 0 auto}
+/* Il marchio e "salzillo" sono sempre nel blu istituzionale, sulla notte
+   come sul cemento (2026-09-24); "costruzioni" resta nel grigio di bordo. */
+.hd__mark{display:block;width:2.9cqw;min-width:24px;color:var(--marchio-blu);flex:0 0 auto}
 .hd__mark svg{display:block;width:100%;height:auto}
 .hd__wordmark{display:flex;flex-direction:column;line-height:1.05}
-.hd__wordmark span:last-child{color:var(--chrome)}
+/* Il peso sta sul NOME, non sulla riga di sotto: era `span:last-child`
+   quando "salzillo" stava in fondo, e invertendo l'ordine avrebbe
+   marcato la parola sbagliata. */
+.hd__nome{color:var(--marchio-blu)}
+.hd__tipo{color:var(--chrome-soft)}
 /* Variante A — solo marchio: il testo esce e il simbolo cresce. */
 .hd__logo[data-logo="a"] .hd__wordmark{display:none}
 .hd__logo[data-logo="a"] .hd__mark{width:3.4cqw;min-width:28px}
@@ -212,7 +290,9 @@ body{
    nella reference: il logo sta più in alto, la voce di destra più
    in basso. I due padding qui sotto sono tarati su quella misura
    (ref a 1920: logo 45, INTRODUCTION 65, voce destra 67). */
-.hd__center{position:absolute;left:40%;top:1.9cqw;width:20%;display:flex;align-items:center;justify-content:space-between;padding-top:1.1cqw}
+/* La nav è ora una riga di quattro voci, quindi non sta più in una
+   colonna del 20%: si centra sullo stage e si dimensiona da sé. */
+.hd__center{position:absolute;left:50%;top:1.9cqw;transform:translateX(-50%);display:flex;align-items:center;gap:2cqw;padding-top:1.1cqw}
 .hd__right{display:flex;align-items:center;gap:.9cqw;text-decoration:none;padding-top:1.5cqw}
 
 .lbl{
@@ -223,6 +303,48 @@ body{
 
 .icon-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.28cqw;background:none;border:0;cursor:pointer;padding:0}
 .icon-grid i{width:.42cqw;height:.42cqw;min-width:3px;min-height:3px;background:var(--chrome);display:block}
+/* ── Nav: le quattro tappe ─────────────────────────────────
+   La voce in cui ti trovi si accende e tiene un filo arancione:
+   è l'unico accento della fascia, come le CTA della reference.
+   Il sottomenu delle opere si apre in hover E in focus, così la
+   tastiera lo raggiunge senza una riga di JS. */
+.nav__gruppo{position:relative}
+.nav__voce{position:relative;display:block;text-decoration:none;padding-bottom:.6cqw}
+.nav__voce .lbl{color:var(--chrome-soft);transition:color .25s ease}
+.nav__voce:hover .lbl,.nav__voce:focus-visible .lbl{color:var(--chrome)}
+.nav__voce.is-qui .lbl{color:var(--text-max)}
+.nav__voce::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:2px;
+  background:var(--accent);transform:scaleX(0);transform-origin:left;
+  transition:transform .3s ease;
+}
+.nav__voce.is-qui::after{transform:scaleX(1)}
+.nav__sub{
+  position:absolute;left:50%;top:100%;z-index:6;
+  transform:translateX(-50%) translateY(-.4rem);
+  display:flex;flex-direction:column;min-width:12rem;padding:.5rem 0;
+  background:var(--surface-1);border:1px solid var(--rule);
+  opacity:0;visibility:hidden;
+  transition:opacity .22s ease,transform .22s ease,visibility .22s;
+}
+.nav__gruppo:hover .nav__sub,
+.nav__gruppo:focus-within .nav__sub,
+.nav__sub.is-aperto{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
+.nav__sotto{display:block;padding:.5rem 1.1rem;text-decoration:none}
+.nav__sotto .lbl{color:var(--chrome-soft);transition:color .2s ease}
+.nav__sotto:hover .lbl,.nav__sotto:focus-visible .lbl,.nav__sotto.is-qui .lbl{color:var(--accent)}
+
+/* Sotto i 900px la fascia manda la nav a capo: una riga sola che
+   scorre di lato, senza sottomenu (Opere porta alla scelta). */
+@media (max-width:900px){
+  .hd{flex-wrap:wrap;padding-bottom:.6rem}
+  .hd__center{position:static;transform:none;order:3;width:100%;
+              gap:1.2rem;padding-top:.7rem;overflow-x:auto;
+              scrollbar-width:none}
+  .hd__center::-webkit-scrollbar{display:none}
+  .nav__sub{display:none}
+}
+
 .icon-blocks{display:flex;align-items:flex-end;gap:.14cqw}
 .icon-blocks i:first-child{width:.62cqw;height:.42cqw;min-width:5px;min-height:3px;background:var(--chrome)}
 .icon-blocks i:last-child {width:.42cqw;height:.62cqw;min-width:3px;min-height:5px;background:var(--chrome)}
@@ -238,15 +360,28 @@ body{
   color:var(--text-display);
   white-space:nowrap;
 }
+/* overflow:hidden È la maschera del reveal — ogni blocco ha la sua, e
+   senza quella le parole non entrano da sotto il taglio ma appaiono. */
 .display .line{display:block;overflow:hidden}
-.display .line:first-child{text-align:var(--align-1)}
-.display .line:last-child {text-align:var(--align-2);margin-top:var(--line-gap)}
+.display .line--1{text-align:var(--align-1)}
+.display .line--2{text-align:var(--align-2);margin-top:var(--salto-2)}
+.display .line--3{text-align:var(--align-3);margin-top:var(--salto-3)}
+/* Le copy alternative (?copy=2, ?copy=3) hanno due blocchi: il terzo
+   esce di scena e si torna all'alternato di prima, così il committente
+   le rivede esattamente come gliele abbiamo mostrate. */
+.display[data-blocchi="2"] .line--2{margin-top:var(--line-gap)}
+.display[data-blocchi="2"] .line--3{display:none}
 .line__in{display:block;will-change:transform}
 .line--front{color:var(--text-display)}
 
 /* ── Lockup di brand ───────────────────────────────────────── */
 .lockup{
-  position:absolute;left:50%;bottom:9.5%;transform:translateX(-50%);
+  /* Allo stesso livello del preloader (committente, 2026-09-24): lì il
+     lockup sta sopra la percentuale, dentro un padding in % della
+     LARGHEZZA (2,5%) — qui si rifà la stessa somma: padding + margine
+     della percentuale (1,4cqw) + la sua riga. In % dell'altezza le due
+     scritte coincidevano solo su uno schermo di una certa proporzione. */
+  position:absolute;left:50%;bottom:calc(3.9cqw + 1.17 * clamp(9px,.9cqw,12px));transform:translateX(-50%);
   display:flex;flex-direction:column;align-items:center;line-height:1.04;
   font-weight:700;font-size:clamp(16px,2.6cqw,42px);letter-spacing:-.01em;
   text-transform:uppercase;text-align:center;z-index:2;
@@ -261,7 +396,7 @@ body{
 .corner .lbl{color:var(--chrome-soft);font-size:clamp(8px,.88cqw,11px);letter-spacing:.1em}
 
 /* ── Preloader ─────────────────────────────────────────────── */
-.preloader{position:absolute;inset:0;background:var(--pre-bg);z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:6%}
+.preloader{position:absolute;inset:0;background:var(--pre-bg);z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:2.5%}
 .preloader__rule{position:absolute;left:0;top:50%;height:1px;width:0;background:#0F0F0F;opacity:.55}
 .preloader__lockup{display:flex;flex-direction:column;align-items:center;line-height:1.04;font-weight:700;font-size:clamp(16px,2.6cqw,42px);letter-spacing:-.01em;text-transform:uppercase}
 .preloader__lockup .lockup__a{color:#0F0F0F}

@@ -18,7 +18,8 @@
 
 window.DIAGRAMS = (function(){
 
-  const ACCENT = [241,128,16];    /* #F18010 */
+  /* il blu del marchio (--marchio-blu), era l'arancio #F18010 fino al 2026-09-23 */
+  const ACCENT = [74,108,147];    /* #4A6C93 */
   const ASHES  = [143,139,139];   /* #8F8B8B — il grigio su cemento */
 
   const lerp = (a,b,t)=> a + (b-a)*t;
@@ -34,11 +35,14 @@ window.DIAGRAMS = (function(){
      produrre la rotazione. Il primo quadrato eccede il riquadro:
      la figura deve sembrare tagliata dai bordi, come nella
      reference, non contenuta con educazione. */
-  function spiralRings(w,h){
+  function spiralRings(w,h,yLato){
     /* il centro sta in alto: sotto ci va il titolo, e la zona densa
        della spirale gli toglierebbe leggibilità */
-    const cx = w/2, cy = h*.38;
     const s  = Math.max(w,h) * .82;
+    /* Nella card il lato basso del primo quadrato cade al centro dello
+       spazio fra NUOVE e COSTRUZIONI (committente, 2026-09-24): lo
+       dice yLato, misurato sul titolo. Senza titolo, la proporzione. */
+    const cx = w/2, cy = yLato != null ? yLato - s/2 : h*.38;
     let pts = [
       [cx-s/2, cy-s/2], [cx+s/2, cy-s/2],
       [cx+s/2, cy+s/2], [cx-s/2, cy+s/2]
@@ -72,10 +76,13 @@ window.DIAGRAMS = (function(){
      che lo taglia, la freccia che scende — più un quadratino arancione
      fermo dentro la figura, che è l'unico elemento colorato di quella
      schermata. Restituisce polilinee APERTE: si chiude solo il riquadro. */
-  function squadra(w,h){
+  function squadra(w,h,fondo){
     const m = Math.min(w,h);
+    /* il lato basso del riquadro: nella card passa SOPRA il titolo
+       invece di tagliarlo (committente, 2026-09-24) */
+    const b = fondo != null ? Math.min(h*.86, fondo) : h*.86;
     return [
-      {p:[[w*.06,h*.10],[w*.66,h*.10],[w*.66,h*.86],[w*.06,h*.86]], chiusa:true},
+      {p:[[w*.06,h*.10],[w*.66,h*.10],[w*.66,b],[w*.06,b]], chiusa:true},
       {p:[[w*.06,h*.10],[w*.44,h*.48]]},
       {p:[[w*.44,h*.20],[w*.44,h*.68]]},
       {p:[[w*.20,h*.48],[w*.94,h*.48]]},
@@ -118,6 +125,12 @@ window.DIAGRAMS = (function(){
     ctx.stroke();
   }
 
+  /* Dove cadono le linee rispetto al titolo della card, in corpi del
+     titolo (tutto scala in rem, quindi sono costanti). Tarati in
+     cattura: K_SPIRALE = centro dello spazio fra le due righe, dalla
+     cima del titolo; FONDO_SQUADRA = quanto sopra la cima del titolo. */
+  const K_SPIRALE = 1.21, FONDO_SQUADRA = .35;
+
   /* ── montaggio su un canvas ──────────────────────────────── */
   function mount(canvas, kind){
     const ctx = canvas.getContext('2d');
@@ -130,10 +143,19 @@ window.DIAGRAMS = (function(){
       canvas.width  = Math.round(w*dpr);
       canvas.height = Math.round(h*dpr);
       ctx.setTransform(dpr,0,0,dpr,0,0);
+      /* il titolo della card, se c'è, in coordinate del canvas */
+      const t = canvas.closest('.case-card')?.querySelector('.case-card__t');
+      let top = null, em = 0;
+      if(t){
+        top = t.getBoundingClientRect().top - canvas.getBoundingClientRect().top;
+        em  = parseFloat(getComputedStyle(t).fontSize);
+      }
       shapes = kind === 'cerchi'  ? tangentCircles(w,h)
-             : kind === 'squadra' ? squadra(w,h)
-             :                      spiralRings(w,h);
+             : kind === 'squadra' ? squadra(w,h, top != null ? top - FONDO_SQUADRA*em : null)
+             :                      spiralRings(w,h, top != null ? top + K_SPIRALE*em : null);
     }
+    /* la prima misura può cadere col font di riserva */
+    if(document.fonts) document.fonts.ready.then(()=>{ resize(); draw(lastP, lastD); });
 
     function traccia(forma, frac){
       if(kind === 'cerchi') return strokeArcPartial(ctx, forma, frac);

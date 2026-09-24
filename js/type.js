@@ -20,6 +20,26 @@
 
 window.TYPE = (function(){
 
+  /* Nelle sezioni a pagina (data-pagina, js/pagine.js) lo schermo si
+     ferma col top della sezione in cima: un elemento in basso non
+     salirebbe mai al 18% o al 66% e resterebbe a metà comparsa. Lì la
+     finestra è l'arrivo della SEZIONE, che dura quanto lo scorrimento
+     animato fra una pagina e l'altra. */
+  /* data-rivela="start|end" su una sezione (02 e 03, 2026-09-24): tutti i
+     suoi testi compaiono in quella finestra, misurata sulla sezione. Serve
+     a farli salire più lenti e insieme al passaggio del mattone
+     (js/scroll.js → initBrick, CENTRI). */
+  function finestra(el, start, end){
+    const riv = el.closest('[data-rivela]');
+    if(riv){
+      const [s, e] = riv.dataset.rivela.split('|');
+      return {trigger:riv, start:s, end:e};
+    }
+    const pag = el.closest('[data-pagina]');
+    return pag ? {trigger:pag, start:'top 85%', end:'top 5%'}
+               : {trigger:el, start, end};
+  }
+
   /* ── 1. righe mascherate ─────────────────────────────────── */
   /* Un solo scrub per blocco di titolo, con le righe in stagger:
      la seconda riga insegue la prima invece di partire insieme. */
@@ -38,7 +58,7 @@ window.TYPE = (function(){
         scrollTrigger:{
           /* stessa finestra del wipe: le righe salgono mentre il fronte
              scende, e lo stagger fa inseguire la seconda alla prima */
-          trigger:block, start:'top 92%', end:'top 18%',
+          ...finestra(block, 'top 92%', 'top 18%'),
           scrub:.5, invalidateOnRefresh:true
         }
       });
@@ -50,7 +70,7 @@ window.TYPE = (function(){
     scope.querySelectorAll('.fade-in').forEach(el=>{
       gsap.fromTo(el, {autoAlpha:0, y:22}, {
         autoAlpha:1, y:0, ease:'none',
-        scrollTrigger:{trigger:el, start:'top 94%', end:'top 66%', scrub:.5}
+        scrollTrigger:{...finestra(el, 'top 94%', 'top 66%'), scrub:.5}
       });
     });
   }
@@ -76,7 +96,7 @@ window.TYPE = (function(){
              reference non è stata misurata sul sito vivo. 700-900 px
              è però coerente col resto della sua grammatica, e i 518
              px di prima erano fuori scala rispetto a tutto il resto. */
-          trigger:block, start:'top 92%', end:'top 18%',
+          ...finestra(block, 'top 92%', 'top 18%'),
           scrub:.5, invalidateOnRefresh:true
         }
       })
@@ -134,12 +154,29 @@ window.TYPE = (function(){
       setDot({y:spots[i], opacity:stato.t > .02 && stato.t < .98 ? 1 : 0});
     };
 
+    /* La corsa del faretto si può dichiarare nell'HTML
+       (data-ignite-start / data-ignite-end). Serve al capitolo della
+       caduta: lì il faretto non è libero di andare al suo passo, deve
+       arrivare sull'ultima riga nell'istante in cui il mattone tocca
+       il pavimento, e i due si tarano l'uno sull'altro.
+       Lo scrub è più corto del solito per lo stesso motivo: mezzo
+       secondo di ritardo, su un incontro cercato, si vede. */
+    const d = el.dataset;
+    /* Dove si ferma il faretto. `data-ignite-fine="ultima"` lo lascia
+       sull'ultima riga invece di portarlo oltre: la riga resta accesa
+       e il pallino resta lì fino alla fine della sezione, invece di
+       scorrere via e spegnere tutto. Serve al capitolo della caduta,
+       dove quella parola è il punto d'arrivo di tutta la scena. */
+    const tFine = d.igniteFine === 'ultima'
+      ? (lines.length - .5) / lines.length : 1;
     return gsap.to(stato, {
-      t:1, ease:'none', onUpdate:paint,
+      t:tFine, ease:'none', onUpdate:paint,
       scrollTrigger:{
         trigger:opts.trigger || el.closest('section') || el,
-        start:opts.start || 'top 72%', end:opts.end || 'bottom 68%',
-        scrub:.5, invalidateOnRefresh:true, onRefresh:measure
+        start: d.igniteStart || opts.start || 'top 72%',
+        end:   d.igniteEnd   || opts.end   || 'bottom 68%',
+        scrub:(d.igniteStart || d.igniteEnd) ? .2 : .5,
+        invalidateOnRefresh:true, onRefresh:measure
       }
     });
   }
@@ -158,10 +195,32 @@ window.TYPE = (function(){
   /* ── avvio ───────────────────────────────────────────────── */
   /* A font caricato: le posizioni delle righe si misurano sul
      carattere vero, non sul fallback. */
+  /* ── 3c. i paragrafi arrivano dopo il titolo ────────────── */
+  /* Committente, 2026-09-24: il paragrafo non entra dal basso e non
+     accompagna il titolo — resta nascosto finché il titolo della sua
+     sezione non è uscito del tutto (fine della sua finestra), poi
+     compare con una breve dissolvenza. Tornando su si nasconde di nuovo.
+     (Per un giro c'è stato anche l'effetto HyperText di Magic UI: tolto.) */
+  function dopoTitolo(scope){
+    scope.querySelectorAll('.sec-body--dopo').forEach(el=>{
+      const titolo = el.closest('section')?.querySelector('.sec-display') || el;
+      gsap.set(el, {autoAlpha:0});
+      const mostra = on => gsap.to(el, {autoAlpha: on ? 1 : 0, duration: on ? .5 : .2, overwrite:true});
+      ScrollTrigger.create({
+        ...finestra(titolo, 'top 92%', 'top 18%'),
+        onLeave(){ mostra(true); },
+        onEnterBack(){ mostra(false); },
+        /* caricata già oltre (link diretto, ricarica a metà pagina) */
+        onRefresh(self){ if(self.progress >= 1) gsap.set(el, {autoAlpha:1}); }
+      });
+    });
+  }
+
   function init(scope){
     const run = ()=>{
       revealLines(scope);
       wipeReveal(scope);
+      dopoTitolo(scope);
       fadeIns(scope);
       scope.querySelectorAll('.ignite').forEach(el=>igniteLines(el));
       scope.querySelectorAll('[data-overshoot]').forEach(el=>overshoot(el));
@@ -187,6 +246,7 @@ window.TYPE = (function(){
   function settle(scope){
     gsap.set(scope.querySelectorAll('.line__in'), {yPercent:0, '--heat':1});
     gsap.set(scope.querySelectorAll('.sec-display'), {'--wipe':1});
+    gsap.set(scope.querySelectorAll('.sec-body--dopo'), {autoAlpha:1});
     gsap.set(scope.querySelectorAll('.fade-in'),  {autoAlpha:1, y:0});
     gsap.set(scope.querySelectorAll('.ignite .line'), {'--cur':1});
   }

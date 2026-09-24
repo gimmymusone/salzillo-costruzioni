@@ -10,7 +10,8 @@ html{font-size:1.05vw}
 
 /* La pagina è trasparente e non cattura i click, tranne dove serve */
 #page{position:relative;z-index:1;pointer-events:none}
-#page a, #page button, #page input, #page textarea, #page .contact{pointer-events:auto}
+/* summary: le voci di Perché Salzillo si aprono col + (non erano cliccabili) */
+#page a, #page button, #page input, #page textarea, #page summary, #page .contact{pointer-events:auto}
 
 #hero-spacer{height:300vh}
 
@@ -18,7 +19,7 @@ html{font-size:1.05vw}
 .chapter{height:400vh}
 .chapter .sticky, #s-cerniera .sticky, #s-cantieri .sticky,
 #s-ristrutturazioni .sticky,
-#s-via .sticky, #s-piuma .sticky, #s-cases .sticky, #s-storia .sticky{
+#s-piuma .sticky, #s-cases .sticky, #s-storia .sticky{
   position:sticky;top:0;height:100vh;overflow:hidden;
   display:flex;flex-direction:column;justify-content:flex-end;
   padding:2.5rem;
@@ -57,9 +58,42 @@ html{font-size:1.05vw}
    Valori a riposo = 1: senza JS il titolo è semplicemente lì. */
 @property --wipe{ syntax:'<number>'; inherits:false; initial-value:1 }
 @property --heat{ syntax:'<number>'; inherits:false; initial-value:1 }
+/* Quanto il titolo è già virato al massimo contrasto. Eredita, perché
+   a leggerlo è `--display-ink` sulle righe figlie. */
+@property --nero{ syntax:'<number>'; inherits:true; initial-value:0 }
 
 .sec-display{--display-ink:var(--text-display)}
+/* I tre titoli dei capitoli hanno lo stesso corpo (committente, 2026-09-24).
+   È il più grande che tiene SOSTENIBILITA' (14 lettere) nella sua colonna:
+   al corpo pieno di .sec-display usciva e finiva sopra il mattone. */
+#s01-arte .sec-display, #s02-struttura .sec-display, #s03-finiture .sec-display{font-size:5.8rem}
 .sec-display--q{--display-ink:var(--text-bright)}
+/* Il titolo che si scurisce mentre scorri (capitolo 01): il grigio di
+   sistema su fondo cemento tiene poco, e la schermata è chiara per
+   tutta la sua corsa. `--text-max` vira col tema, quindi è «nero sul
+   cemento» senza scrivere un colore fisso. Il valore lo muove lo
+   scroll (js/scroll.js → initViraTitolo); a riposo è 0, cioè il
+   titolo di sempre. */
+.sec-display--vira{
+  --display-ink:color-mix(in srgb, var(--text-max) calc(var(--nero) * 100%), var(--text-display));
+}
+/* …tranne la prima riga (SOLIDITA'), che resta nel grigio dei titoli come
+   SOSTENIBILITA' e SOSTANZA: solo la seconda va al nero (2026-09-24). */
+.sec-display--vira .line:first-child .line__in{--display-ink:var(--text-display)}
+/* Titolo nel blu istituzionale del marchio (#4A6C93, assets/logo/marchio.svg):
+   chiesto per "DISPONIBILI ORA" il 2026-09-23. Passa da --display-ink e
+   non da color, così il wipe arancione si raffredda nel blu. */
+.sec-display--blu{--display-ink:var(--marchio-blu)}
+/* L'etichetta del capitolo vira con lo stesso tempo del titolo (2026-09-23) */
+.sec-label--vira{
+  color:color-mix(in srgb, var(--text-max) calc(var(--nero) * 100%), var(--text-muted));
+}
+/* il numero [ 01 ] vira col resto dell'etichetta (2026-09-24) */
+.sec-label--vira .cap-num{color:inherit}
+/* e dal 2026-09-24 anche il paragrafo */
+.sec-body.sec-body--vira{
+  color:color-mix(in srgb, var(--text-max) calc(var(--nero) * 100%), var(--text-bright));
+}
 
 .sec-display:not(.ignite){
   --wipe:1;
@@ -84,20 +118,48 @@ html{font-size:1.05vw}
 }
 .todo{color:var(--text-muted);font-size:.85em;letter-spacing:.02em}
 
+/* ── Il paragrafo in alto a destra ─────────────────────────
+   Chiesto per il capitolo 01 (2026-09-23): il titolo resta solo in
+   basso a sinistra e la schermata si legge in diagonale. Il blocco è
+   in posizione assoluta dentro lo sticky, quindi esce dalla colonna
+   che spinge tutto in fondo senza toccarla.
+   `top` non è il margine della sezione ma quello dell'header, che è
+   fisso e passa sopra: sotto i 7rem il testo gli finirebbe dietro. */
+/* Allineato a sinistra (committente, 2026-09-24; prima centrato), con gli
+   a capo voluti: una frase per blocco. */
+/* In basso a destra, col fondo allineato a quello del titolo (padding
+   dello sticky 2,5rem + margine sotto il titolo 2rem) — committente,
+   2026-09-24; prima stava in alto, sotto l'header. */
+.chapter--nota-alta .sec-body{
+  position:absolute;bottom:4.5rem;right:2.5rem;
+  max-width:36rem;text-align:left;hyphens:none;
+  font-size:1.35rem;line-height:1.45;font-weight:700;
+}
+/* una frase per blocco, righe bilanciate dentro ogni frase */
+.sec-body .frase{display:block;text-wrap:balance}
+/* parole chiave nel blu del marchio (committente, 2026-09-24) */
+.sec-body .blu{color:var(--marchio-blu)}
+@media (max-width:900px){
+  .chapter--nota-alta .sec-body{
+    position:static;max-width:none;text-align:left;margin-top:1.4rem;
+  }
+}
+
 /* ── Interstiziali (statement senza numero) ───────────────── */
-#s-via{height:250vh}
-#s-via .sticky--mid, #s-piuma .sticky--mid{justify-content:center}
+#s-piuma .sticky--mid{justify-content:center}
 /* Stessa legge del display hero: il corpo si ancora all'ALTEZZA del
    viewport (la reference fa così), con un tetto in vw perché la riga
-   non sfondi la colonna. Oggi è il tetto in vw a comandare: la copy
-   più lunga ("UN MODO DI COSTRUIRE", 11,8em) non ci sta al corpo
-   della ref — s03-paving misura maiuscole al 14,5% di H, qui si
-   arriva al 9,9%. Accorciata la copy (step 06), il termine in vh
-   prende il comando da solo. */
+   non sfondi la colonna. La copy che teneva il tetto in vw basso
+   ("UN MODO DI COSTRUIRE", 11,8em) era di #s-via, tolta il
+   2026-09-23: ora la classe la usa solo il capitolo della piuma, e
+   chi ci scriverà una copy più corta si ritroverà il termine in vh
+   al comando, col corpo più grande. */
 .sec-display--st{font-size:min(20.8vh, 8.0vw);line-height:.73}
 /* Giustezza alternata: non è una riga più lunga, è un blocco costruito
    su due allineamenti — e l'ultima riga deborda oltre il bordo destro,
-   come la hero. */
+   come faceva la hero. Nessuna sezione la usa più da quando #s-via è
+   stata tolta (2026-09-23): resta perché è un pattern del sistema,
+   pronto per la prossima schermata-manifesto. */
 .sec-display--alt .line--dx{text-align:right;margin-right:calc(-1 * var(--bleed-sez, 4vw))}
 /* L'altra faccia della stessa regola: una riga che non si allinea a
    destra ma RIENTRA (img-23). Il padding sta sulla .line, non sul suo
@@ -133,12 +195,17 @@ html{font-size:1.05vw}
    una linea verticale a metà schermo. La maschera le fa svanire invece
    di troncarle — sul bordo destro, dove incontrano il titolo, e in
    basso, dove escono dallo schermo. */
-.piuma__oggetto{
+.piuma__oggetto, .mattone-volo{
   position:absolute;left:0;top:0;width:56%;height:100%;
   pointer-events:none;
   -webkit-mask-image:linear-gradient(to right,#000 74%,transparent 99%);
   mask-image:linear-gradient(to right,#000 74%,transparent 99%);
 }
+/* Il mattone unico di 02 → 03 → piuma (2026-09-24): sta nel fondo fisso
+   e lo sposta solo la y, quindi niente sticky da inseguire. Parte fuori
+   schermo in alto; sul mobile non c'è (lì i mattoni sono posati). */
+.mattone-volo{will-change:transform}
+@media (max-width:900px){ .mattone-volo{display:none} }
 /* default: oggetto a sinistra, testo a destra (sezione 4) */
 .chapter--duo .duo__oggetto{order:1}
 .chapter--duo .duo__testo  {order:2}
@@ -148,7 +215,22 @@ html{font-size:1.05vw}
 
 /* Il disegno tecnico in basso a sinistra della sezione 5 (img-15):
    linee grigie e un quadratino arancione fermo. */
-.duo__dia{display:block;width:15rem;height:11rem;margin-top:2.4rem}
+/* Il disegno è appeso SOTTO il testo e non entra nella centratura della
+   colonna: così titolo e paragrafi del 03 stanno alla stessa altezza di
+   quelli del 02 (committente, 2026-09-24: «posizioni come la slide prima»). */
+.duo__testo{position:relative}
+/* Il paragrafo della 02 su due righe larghe quanto il titolo (2026-09-24):
+   min-content fa della parola più lunga del titolo la misura della colonna. */
+/* Dal 2026-09-24 il testo del 02 è lungo (scritto dal committente) e non
+   sta più in due righe: resta largo quanto il titolo. Il 03 fa lo stesso. */
+/* il paragrafo si allarga fino al margine destro, non più largo solo
+   quanto il titolo (committente, 2026-09-24) */
+#s02-struttura .duo__para, #s03-finiture .duo__para{display:block;max-width:none}
+/* Stesso corpo e peso del paragrafo della 01, e un po' più staccati dal
+   titolo (committente, 2026-09-24). */
+#s02-struttura .sec-body, #s03-finiture .sec-body{font-size:1.35rem;line-height:1.45;font-weight:700}
+#s02-struttura .duo__para, #s03-finiture .duo__para{margin-top:1.6rem}
+.duo__dia{display:block;width:15rem;height:11rem;position:absolute;top:100%;left:0;margin-top:2.4rem}
 
 /* ── Capitolo piuma: le parole si accendono una alla volta ──
    Il testo sta a destra e il campo di filamenti resta libero a
@@ -181,8 +263,9 @@ html{font-size:1.05vw}
    blocco e scende soltanto di riga in riga: la x non la tocca il JS. */
 .ignite{position:relative}
 .ignite__dot{
-  position:absolute;left:-3.4rem;top:0;width:.42rem;height:.42rem;
-  margin-top:-.21rem;
+  /* +15% e un filo più in basso del centro riga (committente, 2026-09-24) */
+  position:absolute;left:-3.4rem;top:0;width:.483rem;height:.483rem;
+  margin-top:calc(-.24rem + .15em);
   background:var(--accent);pointer-events:none;opacity:0;will-change:transform;
 }
 
@@ -236,7 +319,7 @@ html{font-size:1.05vw}
    specificità vincerebbe lei. */
 .perche .perche__cta{
   display:inline-block;align-self:center;
-  text-decoration:none;background:var(--accent);color:#0F0F0F;
+  text-decoration:none;background:var(--accent);color:var(--accent-ink);
   font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.85rem;
   padding:1rem 2.2rem;border-radius:var(--radius-btn);
 }
@@ -254,15 +337,7 @@ html{font-size:1.05vw}
   position:sticky;top:0;min-height:100vh;padding:8rem 2.5rem;
   display:flex;flex-direction:column;justify-content:center;
 }
-.servizi__chips{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:2.4rem}
-.chip{
-  background:transparent;border:1px solid var(--divider-solid,#3D3D3D);
-  color:var(--text-muted);font-family:inherit;font-weight:600;
-  font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;
-  padding:.55rem 1.1rem;border-radius:0;cursor:pointer;
-}
-.chip:hover{color:var(--text-bright)}
-.chip.is-active{background:var(--surface-2);color:var(--text-max);border-color:var(--text-muted)}
+/* I filtri dei servizi sono stati tolti il 2026-09-24 (committente). */
 .servizi__grid{
   /* tre colonne, non quattro: le voci sono sei e la griglia si chiude
      in due righe piene invece di lasciare due celle vuote in fondo */
@@ -276,11 +351,52 @@ html{font-size:1.05vw}
   color:var(--text-display);margin-bottom:.7rem;line-height:1.1;
 }
 
+/* ── In vendita: schede immobile ───────────────────────────
+   Le altre due categorie sono gallerie da guardare; questa deve far
+   chiedere informazioni, quindi ogni immobile è una scheda con i
+   suoi dati e una sola azione in fondo. Stessa griglia a filo dei
+   servizi: fondo chiaro, filetti, nessun angolo arrotondato. */
+#s-vendita{background:var(--bg)}
+.vendita{
+  position:relative;min-height:100vh;padding:9.5rem 2.5rem 4.5rem;
+  display:flex;flex-direction:column;justify-content:center;
+}
+.vendita__grid{
+  list-style:none;display:grid;grid-template-columns:repeat(3,1fr);
+  gap:1.5rem;margin-top:2rem;
+}
+.imm{display:flex;flex-direction:column;background:var(--surface-1);border:1px solid var(--rule)}
+.imm__foto{
+  /* 16/10 e non 4/3: con tre schede in colonna la pagina deve stare
+     in una schermata sola, titolo e dati compresi */
+  aspect-ratio:16/10;display:flex;align-items:center;justify-content:center;
+  background:var(--surface-2);border-bottom:1px solid var(--rule);
+}
+.imm__t{
+  font-size:1.3rem;font-weight:600;line-height:1.1;text-transform:uppercase;
+  color:var(--text-max);padding:1.2rem 1.2rem .9rem;
+}
+.imm__dati{display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding:0 1.2rem 1.3rem}
+.imm__dati dt{margin-bottom:.3rem;color:var(--text-muted);font-size:.7rem}
+.imm__v{font-size:.95rem;font-weight:600;color:var(--text-bright)}
+/* l'azione chiude la scheda e sta sempre in fondo, anche se una
+   scheda ha meno dati delle altre */
+.imm__cta{
+  margin-top:auto;display:flex;align-items:center;justify-content:space-between;
+  gap:1rem;padding:1rem 1.2rem;border-top:1px solid var(--rule);
+  text-decoration:none;text-transform:uppercase;letter-spacing:.06em;
+  font-size:.8rem;font-weight:700;color:var(--text-display);
+  transition:background .2s ease,color .2s ease;
+}
+.imm__cta::after{content:"→";color:var(--accent)}
+.imm__cta:hover{background:var(--surface-2);color:var(--text-max)}
+
 /* ── Storia: timeline orizzontale ─────────────────────────── */
 /* la timeline sta al centro dello schermo: con flex-end (l'impostazione
    comune degli sticky) le tappe restavano schiacciate in basso sotto
    settecento pixel di nero */
-#s-storia{height:400vh;background:var(--bg)}
+/* 11 opere invece di 5 tappe: più corsa, così ogni foto resta leggibile */
+#s-storia{height:700vh;background:var(--bg)}
 #s-storia .sticky{justify-content:center}
 #s-storia .sec-label{margin-bottom:2.4rem}
 .storia-track{
@@ -288,39 +404,17 @@ html{font-size:1.05vw}
   will-change:transform;width:max-content;align-items:stretch;
 }
 .tappa{
-  flex:0 0 auto;width:34vw;padding:2rem;
+  flex:0 0 auto;width:22vw;padding:0 0 1.4rem;
   background:var(--surface-1);border:1px solid var(--divider-solid,#3D3D3D);
 }
+/* foto dell'opera in cima, poi anno, luogo e tipo (2026-09-24) */
+.tappa__foto{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;margin-bottom:1.2rem}
+.tappa > :not(.tappa__foto){padding:0 1.4rem}
+.tappa__luogo{font-size:1.05rem;font-weight:700;color:var(--text-bright);margin-bottom:.3rem}
+.tappa__tipo{font-size:.75rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--marchio-blu)}
 .tappa__anno{
-  display:block;font-size:5rem;font-weight:600;line-height:.9;
-  color:var(--text-display);margin-bottom:1.4rem;
-}
-
-/* ── Cerniera ─────────────────────────────────────────────── */
-/* 160vh e non 250: spezzando la domanda in due schermate (step 06) la
-   sua durata complessiva era raddoppiata senza che nessuno lo volesse —
-   5.400 px per quattro righe, il doppio della reference. Due sezioni da
-   160vh fanno 3.456 px in tutto, 864 px per riga. */
-#s-cerniera{height:160vh}
-#s-cerniera .sticky{justify-content:center}
-/* La cerniera è il secondo punto di misura della scala: nella ref
-   (img-23) le maiuscole stanno al 10,2% di H. 14,7vh × 0,696 = 10,2%.
-   Il tetto in vw è tarato su "DI CHI LA COSTRUISCE?" (11,44em), che
-   a 1920 riempie la colonna esatta: qui i due termini coincidono. */
-.sec-display--q{font-size:min(14.7vh, 8.2vw);line-height:.73;color:var(--text-bright)}
-
-/* 6.2 — la seconda metà della domanda (stessa durata della prima) */
-#s-cerniera-b{height:160vh}
-#s-cerniera-b .sticky{
-  position:sticky;top:0;height:100vh;overflow:hidden;
-  display:flex;flex-direction:column;justify-content:center;
-  align-items:flex-end;padding:2.5rem;
-}
-.sec-display--dx{text-align:right}
-/* il diagramma cala dal bordo alto, come in img-25 */
-.cerniera__dia{
-  position:absolute;top:0;right:14%;width:18rem;height:13rem;
-  display:block;opacity:.7;
+  display:block;font-size:3.4rem;font-weight:600;line-height:.9;
+  color:var(--text-display);margin-bottom:.9rem;
 }
 
 /* ── Scelta dei lavori: le due card su fondo notte ─────────── */
@@ -337,6 +431,7 @@ html{font-size:1.05vw}
   background:var(--paper-l);opacity:0;
   clip-path:inset(50% 50% 50% 50%);will-change:clip-path;
 }
+
 .cases-choice{
   position:relative;z-index:1;
   display:flex;gap:3.4rem;align-items:stretch;justify-content:center;
@@ -362,6 +457,16 @@ html{font-size:1.05vw}
   margin-top:1.1rem;padding-top:.7rem;border-top:1px solid rgba(0,0,0,.55);
 }
 .case-card__ft .lbl{color:#0F0F0F;font-size:.72rem}
+/* Titoli più bassi, meno sovrapposti ai disegni (committente, 2026-09-24):
+   piede più vicino al titolo e meno margine sotto. */
+.case-card{padding-bottom:1rem}
+/* Interlinea aperta: fra NUOVE e COSTRUZIONI passa la riga blu della
+   spirale, e a .88 lo spazio era più sottile del tratto (2026-09-24). */
+.case-card__t{line-height:1.2}
+.case-card__ft{margin-top:.6rem}
+/* Il disegno di In vendita specchiato: la freccia scende a destra e
+   lascia libero il titolo a sinistra. Solo la card, non il 03. */
+.case-card[data-dia="squadra"] .case-card__dia{transform:scaleX(-1)}
 
 /* Nella reference l'arancione è riservato al DIAGRAMMA: il titolo della
    card resta nero sempre. Era questo il titolo arancione di img-27 —
@@ -395,7 +500,7 @@ html{font-size:1.05vw}
 .galleria__cat{
   position:absolute;left:2.5rem;bottom:7%;
   font-size:1.7rem;font-weight:600;line-height:1.02;letter-spacing:-.005em;
-  text-transform:uppercase;color:var(--text-max);
+  text-transform:uppercase;color:var(--marchio-blu);   /* blu del marchio, 2026-09-23 */
 }
 .galleria__cat span{display:block;color:var(--text-muted)}
 .cases-track{
@@ -453,7 +558,7 @@ html{font-size:1.05vw}
 /* l'unico elemento colorato della pagina */
 .btn-accent{
   margin-top:2rem;align-self:flex-start;
-  background:var(--accent);color:#0F0F0F;border:0;border-radius:var(--radius-btn);
+  background:var(--accent);color:var(--accent-ink);border:0;border-radius:var(--radius-btn);
   font-family:inherit;font-weight:700;font-size:.9rem;letter-spacing:.08em;text-transform:uppercase;
   padding:1rem 2.2rem;cursor:pointer;
 }
@@ -469,10 +574,10 @@ html{font-size:1.05vw}
   .chapter, .chapter--m{height:auto}
   .chapter .sticky, #s-cerniera .sticky, #s-cantieri .sticky,
   #s-ristrutturazioni .sticky,
-  #s-via .sticky, #s-piuma .sticky, #s-cases .sticky, #s-storia .sticky{
+  #s-piuma .sticky, #s-cases .sticky, #s-storia .sticky{
     position:static;height:auto;min-height:70vh;padding:1.8rem;
   }
-  #s-via,#s-piuma,#s-cases,#s-cerniera,#s-cantieri,#s-ristrutturazioni,#s-storia{height:auto}
+  #s-piuma,#s-cases,#s-cerniera,#s-cantieri,#s-ristrutturazioni,#s-storia{height:auto}
   #s-cerniera-b{height:auto}
   #s-cerniera-b .sticky{position:static;height:auto;min-height:70vh;padding:1.8rem}
   #s-piuma .sticky--mid{text-align:left;align-items:flex-start}
@@ -491,9 +596,18 @@ html{font-size:1.05vw}
   .case img{height:42vh}
   .tappa{width:100%}
   .sec-display{font-size:4.2rem}
+  #s01-arte .sec-display, #s02-struttura .sec-display, #s03-finiture .sec-display{font-size:4rem}
+  .duo__dia{position:static}
+  /* Capitoli 02 e 03 su una colonna: a due colonne il testo aveva
+     161px di larghezza su un telefono e i titoli sbordavano. */
+  .chapter--duo .sticky{grid-template-columns:1fr;row-gap:1.5rem}
   .sec-display--q{font-size:3.2rem}
   .sec-display--st{font-size:3.6rem}
-  .servizi,.contact,.perche{position:static;min-height:0;padding:3rem 1.8rem}
+  .servizi,.contact,.perche,.vendita{position:static;min-height:0;padding:3rem 1.8rem}
+  /* la fascia alta qui è a due righe (logo + nav): il titolo della
+     sezione deve passarci sotto, non finirci addosso */
+  .vendita{padding-top:6rem}
+  .vendita__grid{grid-template-columns:1fr}
   #s-servizi{min-height:0}
   #s-contatti{min-height:0}
   #s-perche{min-height:0;padding:3rem 0}
@@ -507,3 +621,98 @@ html{font-size:1.05vw}
 @media (prefers-reduced-motion:reduce){
   .cases-track,.storia-track{transform:none !important}
 }
+
+/* ── Pagine: da "perché Salzillo" ai contatti (2026-09-23) ────────
+   Ogni sezione marcata data-pagina è alta ESATTAMENTE uno schermo, e
+   js/pagine.js porta da una all'altra con un gesto e uno scorrimento
+   animato. Qui si spengono le altezze lunghe e gli sticky che servivano
+   quando era lo scroll a far avanzare il contenuto. Solo desktop: sotto
+   i 900px la pagina resta a scorrimento libero, come prima. */
+@media (min-width:901px){
+  /* !important perché le altezze lunghe stanno su selettori a id
+     (#s-perche{min-height:450vh}…): così l'unica dichiarazione resta
+     l'attributo nell'HTML, senza ripetere qui l'elenco delle sezioni. */
+  [data-pagina]{height:100vh !important;min-height:0 !important;padding:0 !important;overflow:hidden}
+  /* Perché Salzillo sale come un pannello notte sopra la gravità, che
+     nei suoi ultimi 100vh è ancora ferma: un passaggio solo, senza
+     tenda (2026-09-24). Fondo nero fisso, non var(--bg): deve esserlo
+     già mentre sale, prima che --t abbia finito di virare. */
+  /* Il pannello porta con sé la notte: i token vivi sono fissati qui
+     dentro, così il tema della pagina (--t) può virare solo a pannello
+     arrivato, e il cemento ancora scoperto sopra non passa dal grigio. */
+  #s-perche{
+    margin-top:-100vh;position:relative;z-index:1;
+    --paper:var(--paper-d);--sunk:var(--sunk-d);--lift:var(--lift-d);
+    --ink:var(--ink-d);--ink2:var(--ink2-d);--mute:var(--mute-d);--max:var(--max-d);
+    --rule:var(--rule-d);--divider:var(--div-d);
+    --bg:var(--paper);--surface-1:var(--sunk);--surface-2:var(--lift);
+    --text-display:var(--ink);--text-bright:var(--ink2);--text-muted:var(--mute);
+    --text-max:var(--max);--divider-solid:var(--divider);
+    background:var(--paper-d);
+  }
+  [data-pagina] > .sticky, .perche, .servizi, .contact, .vendita{
+    position:relative;top:auto;height:100vh;min-height:0;
+  }
+  /* 6rem in cima: la fascia dell'header. Prima l'etichetta PERCHE'
+     SALZILLO finiva sotto la nav. */
+  .perche{padding:6rem 2.5rem 2.5rem}
+  .servizi{padding:6rem 2.5rem 2.5rem}
+  .vendita{padding:6rem 2.5rem 2.5rem}
+  /* In vendita tiene lo schermo per un tratto prima che arrivi la storia
+     (committente, 2026-09-24: con un filo di scroll in più diventava
+     tutto nero e la sezione si perdeva). La sezione è più alta di uno
+     schermo e il contenuto le resta incollato; overflow:clip e non
+     hidden, che farebbe della sezione un contenitore di scroll e
+     spegnerebbe lo sticky. */
+  #s-vendita{height:150vh !important;overflow:clip}
+  #s-vendita .vendita{position:sticky;top:0}
+  .contact{padding:6rem 2.5rem 2rem}
+
+  /* tre card e non più due nello stesso spazio: RISTRUTTURAZIONI
+     sfondava la card e veniva tagliata */
+  .cases-choice{max-width:72rem}
+  /* il nome del progetto staccato dalla nav: a 9% le stava attaccato
+     (committente, 2026-09-23); a 20% sta a metà fra nav e foto */
+  .galleria__nome{top:20%}
+  .case-card__t{font-size:1.75rem}
+}
+/* Il tasto che salta il resto di una galleria: centrato in basso. */
+/* In altezza è centrato sulla categoria a sinistra (.galleria__cat: due
+   righe da 1,7rem × 1,02, col fondo al 7%): il suo centro sta a metà di
+   quel blocco, qualunque sia l'altezza del bottone. */
+.salta{
+  position:absolute;left:50%;bottom:calc(7% + 1.734rem);transform:translate(-50%,50%);z-index:2;
+  border-radius:var(--radius-btn);
+  display:inline-flex;align-items:center;gap:.6rem;
+  font-size:.75rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--accent-ink);background:var(--marchio-blu);text-decoration:none;
+  padding:.85rem 1.4rem;
+}
+.salta:hover{background:var(--accent-hi)}
+@media (max-width:900px){ .salta{display:none} }
+
+/* ── WhatsApp: tasto fisso in basso a destra (2026-09-24) ───────
+   Minimal: cerchio nero, bordo e simbolo nel blu del marchio. Sta fuori
+   da #page (che non cattura i click) ed è sopra tutto tranne l'header. */
+/* Il tasto tondo: nero, bordo e simbolo nel blu del marchio. Lo usano il
+   WhatsApp fisso e i tre social nei contatti. */
+.tondo{
+  width:3.4rem;height:3.4rem;min-width:48px;min-height:48px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+  background:#0F0F0F;border:2px solid var(--marchio-blu);color:var(--marchio-blu);
+  transition:background .2s ease,color .2s ease;
+}
+.tondo svg{width:48%;height:48%;display:block}
+.tondo:hover{background:var(--marchio-blu);color:#fff}
+.wa{position:fixed;right:1.6rem;bottom:1.6rem;z-index:6}
+/* i social nei contatti */
+.social{display:flex;gap:.8rem;margin-top:.2rem}
+/* telefono ed email cliccabili, senza sottolineatura di sistema */
+.contact__link{color:inherit;text-decoration:none;border-bottom:1px solid var(--rule)}
+.contact__link:hover{color:var(--text-max);border-bottom-color:var(--marchio-blu)}
+/* la firma dell'agenzia nel piè di pagina */
+.contact__foot .contact__firma{color:var(--text-display);text-decoration:none}
+.contact__foot .contact__firma:hover{color:var(--marchio-blu)}
+/* il piè di pagina lascia spazio al tasto, che altrimenti copre «© 2026» */
+.contact__foot{padding-right:4.6rem}
+@media (max-width:900px){ .wa{right:1rem;bottom:1rem} }

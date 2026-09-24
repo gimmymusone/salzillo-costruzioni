@@ -28,16 +28,18 @@
    saltava sui buchi. Qui: ogni URL si scarica UNA volta sola
    (i tre slot del mattone condividono gli stessi file), al massimo
    MAX richieste in volo, e la priorità 0 (torre) passa sempre
-   davanti alla 1 (mattone). */
+   davanti alla 1 (mattone) e alla 2 (le silhouette del primo piano,
+   che arrivano per ultime: senza, il titolo resta semplicemente
+   davanti, ed è una mancanza che non si nota). */
 window.CODA = (function(){
   const MAX = 6;
   const cache = new Map();          /* url → {im, fatto, ok, cbs} */
-  const file  = [[], []];
+  const file  = [[], [], []];
   let attivi  = 0;
 
   function pompa(){
     while(attivi < MAX){
-      const url = file[0].shift() || file[1].shift();
+      const url = file[0].shift() || file[1].shift() || file[2].shift();
       if(!url) return;
       attivi++;
       const e  = cache.get(url);
@@ -61,7 +63,7 @@ window.CODA = (function(){
       return;
     }
     cache.set(url, e = {im:null, fatto:false, ok:false, cbs:[cb]});
-    file[prio ? 1 : 0].push(url);
+    file[Math.min(Math.max(prio|0, 0), file.length - 1)].push(url);
     pompa();
   }
 
@@ -137,13 +139,31 @@ window.SEQ = (function(){
 
   const framePath = i => `assets/frames/f_${String(i+1).padStart(3,'0')}.webp`;
 
+  /* Il palazzo in primo piano. Le silhouette esistono solo per il
+     tratto in cui il titolo è a schermo (si congeda al 90% di
+     #hero-spacer, cioè intorno al frame 107): oltre, il canvas davanti
+     non ha più niente da fare e si spegne da solo. Renderizzate dal
+     MODE=matte di assets/3d/render_orbit.py, stessa camera dei frame a
+     colori — è quello che le fa combaciare al pixel. */
+  const MATTE_COUNT = 120;
+  /* La versione nell'indirizzo non è un vezzo: le silhouette sono già
+     state rifatte due volte tenendo gli stessi nomi, e il browser
+     continuava a servire le vecchie dalla cache senza dare segno —
+     si vedeva il difetto di ieri su un file corretto oggi. Rifatte le
+     matte, si alza questo numero. */
+  const MATTE_VER = 7;
+  const mattePath = i => `assets/matte/f_${String(i+1).padStart(3,'0')}.webp?v=${MATTE_VER}`;
+
   const canvas = document.getElementById('seq');
   const ctx    = canvas ? canvas.getContext('2d') : null;
+  const front  = document.getElementById('seqFront');
+  const fctx   = front ? front.getContext('2d') : null;
 
   const images = new Array(FRAME_COUNT).fill(null);
+  const mattes = new Array(MATTE_COUNT).fill(null);
   const state  = {
     ready:false, loadFailed:false, disabled:false, shown:false,
-    target:0, prog:0, drawn:-1, lastTick:0,
+    target:0, prog:0, drawn:-1, lastTick:0, bucoFirma:'',
     readyCbs:[]
   };
 
@@ -180,6 +200,16 @@ window.SEQ = (function(){
       segna();
     });
     ordine.forEach(i=>loadFrame(i, ()=>{ if(i % PASSATA === 0) segna(); }));
+
+    /* le silhouette non entrano nel conto del preloader: l'intro non
+       le aspetta, il primo piano si accende quando sono arrivate */
+    if(!mobile){
+      CODA.ordine(MATTE_COUNT).forEach(i=>{
+        CODA.prendi(mattePath(i), 2, im=>{
+          if(im){ mattes[i] = im; if(state.shown) draw(true); }
+        });
+      });
+    }
   }
 
   function whenReady(cb, timeout){
@@ -192,13 +222,17 @@ window.SEQ = (function(){
   }
 
   /* ── disegno (cover) ─────────────────────────────────────── */
-  function nearest(i){
-    if(images[i]) return images[i];
+  /* Restituisce l'INDICE del frame disegnato, non solo l'immagine: il
+     primo piano deve ritagliare con la silhouette DI QUEL fotogramma.
+     Con una vicina i contorni non combacerebbero e si vedrebbe una
+     seconda torre sfalsata di qualche pixel. */
+  function nearestIdx(i){
+    if(images[i]) return i;
     for(let d=1; d<FRAME_COUNT; d++){
-      if(images[i-d]) return images[i-d];
-      if(images[i+d]) return images[i+d];
+      if(images[i-d]) return i-d;
+      if(images[i+d]) return i+d;
     }
-    return null;
+    return -1;
   }
 
   function metrics(im){
@@ -212,21 +246,170 @@ window.SEQ = (function(){
   function draw(force){
     if(!ctx || state.loadFailed || state.disabled) return;
     const idx = Math.round(state.prog);
-    if(!force && idx === state.drawn) return;
-    const im = nearest(idx);
-    if(!im) return;
+    const j = nearestIdx(idx);
+    if(j < 0) return;
+
+    /* Il primo piano ha una ragione in più del fondo per ridisegnarsi:
+       il buco della lettera intera insegue il titolo mentre entra da
+       sotto e mentre scivola via allo scroll. A fotogramma fermo il
+       fondo non si tocca, ma quel buco sì — altrimenti resta indietro,
+       sulla posizione dell'ultimo cambio di frame. */
+    const b = (j < MATTE_COUNT && mattes[j]) ? buco(j) : null;
+    const firma = b ? `${Math.round(b.x)}|${Math.round(b.y)}|${b.op.toFixed(2)}` : '';
+    const fondoNuovo = force || idx !== state.drawn;
+    if(!fondoNuovo && firma === state.bucoFirma) return;
+    state.bucoFirma = firma;
+
+    const im = images[j];
     const dpr = Math.min(devicePixelRatio||1, 2);
     const cw = canvas.clientWidth, ch = canvas.clientHeight;
     if(canvas.width !== Math.round(cw*dpr) || canvas.height !== Math.round(ch*dpr)){
       canvas.width = Math.round(cw*dpr); canvas.height = Math.round(ch*dpr);
     }
     const m = metrics(im);
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(im, m.dx, m.dy, im.width*m.s, im.height*m.s);
-    state.drawn = idx;
 
-    if(DEBUG) drawDebugRing(m, im);
+    if(fondoNuovo){
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(im, m.dx, m.dy, im.width*m.s, im.height*m.s);
+      state.drawn = idx;
+      if(DEBUG) drawDebugRing(m, im);
+    }
+
+    drawFront(j, m, dpr, b);
+  }
+
+  /* ── il palazzo in primo piano ────────────────────────────
+     Stesso fotogramma del fondo, stessa cover-math, stesso filtro
+     (che sta in CSS su entrambi i canvas): i due palazzi si
+     sovrappongono esattamente, e l'unica cosa che cambia è che questo
+     è ritagliato sulla sua silhouette e sta sopra il titolo.
+     Il ritaglio è `destination-in`: resta il colore dove la matte ha
+     alpha. I pixel di bordo hanno alpha parziale, quindi il contorno
+     conserva l'antialiasing del render invece di seghettarsi. */
+  function drawFront(j, m, dpr, b){
+    if(!fctx) return;
+    if(front.width !== canvas.width || front.height !== canvas.height){
+      front.width = canvas.width; front.height = canvas.height;
+    }
+    fctx.setTransform(1,0,0,1,0,0);
+    fctx.clearRect(0, 0, front.width, front.height);
+    const ma = j < MATTE_COUNT ? mattes[j] : null;
+    if(!ma) return;                     /* niente silhouette: titolo davanti */
+    /* C'e' una lettera da tenere intera ma il suo ritaglio non si sa
+       ancora calcolare (font non pronto): meglio nessun primo piano
+       che un fotogramma con la lettera spezzata. Solo nei fotogrammi
+       in cui il ritaglio ci sarebbe davvero. */
+    if(!b && j < BUCO_FINO_A && document.querySelector('.display .su')) return;
+    const im = images[j];
+    fctx.setTransform(dpr,0,0,dpr,0,0);
+    fctx.imageSmoothingQuality = 'high';
+    fctx.drawImage(im, m.dx, m.dy, im.width*m.s, im.height*m.s);
+    fctx.globalCompositeOperation = 'destination-in';
+    /* con le misure del FONDO, non con le proprie: anche se un giorno
+       le silhouette fossero a un'altra risoluzione, resterebbero
+       incollate al fotogramma che ritagliano */
+    fctx.drawImage(ma, m.dx, m.dy, im.width*m.s, im.height*m.s);
+
+    /* …tranne dove c'è una lettera dichiarata intera (.su nell'HTML):
+       lì il primo piano si toglie di mezzo e il palazzo le passa
+       DIETRO. Serve per le aste verticali — la I di COSTRUITO — dove
+       il taglio non si legge come profondità ma come un errore di
+       stampa. Il buco ha la forma esatta del glifo, non del suo
+       rettangolo di avanzamento: su una I sono due cose diverse di
+       sette pixel per lato, e si vedrebbero come un morso nel palazzo. */
+    if(b){
+      fctx.globalCompositeOperation = 'destination-out';
+      fctx.globalAlpha = b.op;
+      fctx.fillStyle = '#000';
+      fctx.fillRect(b.x, b.y, b.w, b.h);
+      fctx.globalAlpha = 1;
+    }
+    fctx.globalCompositeOperation = 'source-over';
+    if(DEBUG && b){
+      fctx.strokeStyle = 'rgba(0,255,120,.9)';
+      fctx.lineWidth = 1;
+      fctx.strokeRect(b.x + .5, b.y + .5, b.w - 1, b.h - 1);
+    }
+  }
+
+  /* Il rettangolo del glifo da risparmiare, in pixel CSS.
+     Il rect del DOM dà l'avanzamento (glifo più gli spazi laterali); il
+     contorno vero lo danno le metriche del canvas, misurate con lo
+     stesso font e rimisurate solo quando il corpo cambia. L'alpha
+     segue l'opacità del titolo, così il buco sfuma insieme a lui
+     quando la hero se ne va, invece di sparire di colpo. */
+  let bucoFont = '', bucoMis = null, sonda = null;
+
+  /* La baseline della riga, misurata invece che dedotta.
+     Dedurla dalle metriche del font sbagliava di qualche decimo, e in
+     basso quei decimi si vedevano: la torre tagliava il piede della I.
+     Un elemento vuoto in linea alta zero ha il suo bordo inferiore
+     esattamente sulla baseline — è il modo più diretto di chiederla al
+     browser invece di ricostruirla. */
+  function baseline(su){
+    if(!sonda || !sonda.isConnected){
+      sonda = document.createElement('i');
+      sonda.className = 'base-sonda';
+      sonda.setAttribute('aria-hidden', 'true');
+      su.parentNode.appendChild(sonda);
+    }
+    return sonda.getBoundingClientRect().bottom;
+  }
+
+  /* Per quanti fotogrammi la lettera resta davanti. È una correzione
+     della SOLA hero ferma: lì la punta della torre spezzava la I e si
+     leggeva come un errore di stampa. Appena la camera scende il
+     palazzo cresce fino a riempire lo schermo, e una lettera che gli
+     galleggia davanti — da sola, mentre tutte le altre ci passano
+     dietro — diventa lei l'errore. Quindi il ritaglio si chiude nei
+     primi fotogrammi, cioè in un paio di giri di rotellina: il tempo
+     in cui la hero è ancora la hero. */
+  const BUCO_FINO_A = 12;
+
+  function buco(j){
+    if(!fctx) return null;
+    const svanire = 1 - Math.min(1, (j || 0) / BUCO_FINO_A);
+    if(svanire <= 0) return null;
+    const su = document.querySelector('.display .su');
+    if(!su) return null;
+    const r = su.getBoundingClientRect();
+    if(!r.width || !r.height) return null;
+    const hero = su.closest('.hero');
+    const op = (hero ? parseFloat(getComputedStyle(hero).opacity) : 1) * svanire;
+    if(!(op > .01)) return null;
+
+    const cs = getComputedStyle(su);
+    const font = `${cs.fontStyle} ${cs.fontWeight} ${parseFloat(cs.fontSize)}px ${cs.fontFamily}`;
+    if(font !== bucoFont){
+      const testo = cs.textTransform === 'uppercase'
+        ? su.textContent.toUpperCase() : su.textContent;
+      fctx.save();
+      fctx.setTransform(1,0,0,1,0,0);
+      fctx.font = font;
+      const m = fctx.measureText(testo);
+      /* Coerenza col DOM: se il canvas sta misurando con un font di
+         ripiego — succede quando le metriche si chiedono prima che il
+         webfont sia arrivato — l'avanzamento non torna, e un buco
+         tagliato sulla I di Arial lascerebbe scoperta quella vera.
+         In quel caso non si memorizza nulla e si riprova al giro dopo,
+         quando il font c'e'. */
+      const coerente = Math.abs(m.width - r.width) <= Math.max(1.5, r.width * .04);
+      bucoMis = coerente ? {
+        sx:m.actualBoundingBoxLeft,     dx:m.actualBoundingBoxRight,
+        alto:m.actualBoundingBoxAscent, basso:m.actualBoundingBoxDescent
+      } : null;
+      fctx.restore();
+      if(coerente) bucoFont = font;
+    }
+    const q = bucoMis;
+    if(!q) return null;
+    const base = baseline(su);
+    /* arrotondato verso l'ESTERNO: meglio un pixel di palazzo in meno
+       che un filo di palazzo sopra la lettera */
+    const x0 = Math.floor(r.left - q.sx), x1 = Math.ceil(r.left + q.dx);
+    const y0 = Math.floor(base - q.alto), y1 = Math.ceil(base + q.basso);
+    return { x:x0, y:y0, w:x1 - x0, h:y1 - y0, op };
   }
 
   /* ── morph: dove sta l'anello del frame 1 sullo schermo ──── */
@@ -252,6 +435,9 @@ window.SEQ = (function(){
   }
 
   const DEBUG = new URLSearchParams(location.search).has('debug');
+  /* ?debug=1 disegna anche il contorno del buco della lettera intera:
+     serve a vedere DOVE il codice crede che stia il glifo, invece di
+     dedurlo dal risultato. */
   function drawDebugRing(m, im){
     const r = frameToScreen();
     ctx.strokeStyle = 'rgba(255,0,80,.8)';
@@ -295,7 +481,30 @@ window.SEQ = (function(){
 
   addEventListener('resize', ()=>{ sizeLogoMorph(); if(state.shown) draw(true); });
 
+  /* Quando il webfont arriva, le lettere cambiano larghezza: le
+     metriche del buco vanno rimisurate e la scena ridisegnata. Senza,
+     il ritaglio della lettera intera resterebbe quello del font di
+     ripiego per tutta la visita. */
+  if(document.fonts && document.fonts.ready){
+    document.fonts.ready.then(()=>{
+      bucoFont = ''; bucoMis = null; state.bucoFirma = '';
+      if(state.shown) draw(true);
+    });
+  }
+
   /* ═══════════════ Coreografia di scroll ═══════════════════ */
+
+  /* ── la coda: il fermo a fine sezione ──────────────────────
+     Chiesto dal committente il 2026-09-23. Ogni animazione lunga
+     finisce un tratto PRIMA della fine della sua sezione: in quel
+     tratto lo scroll continua ma la scena non si muove più, e per
+     passare al capitolo dopo bisogna scorrere ancora un po'. Serve a
+     far vedere l'ultimo fotogramma invece di scivolarci sopra —
+     senza, la sequenza arriva in fondo proprio mentre la sezione
+     esce di scena e quell'immagine non la guarda nessuno.
+     `bottom+=` e non `bottom-=`: il punto è sotto il bordo dello
+     schermo, quindi la sezione ci arriva prima. */
+  const FINE_CON_CODA = 'bottom bottom+=30%';
 
   const root = document.documentElement;
   const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
@@ -311,6 +520,9 @@ window.SEQ = (function(){
     if(DIA.length || !window.DIAGRAMS) return;
     DIA = [...document.querySelectorAll('.case-card__dia')]
       .map(c => DIAGRAMS.mount(c, c.parentElement.dataset.dia));
+    /* Lo stato di partenza: disegni interi. Su desktop poi li smonta
+       initCases scorrendo; su mobile restano così. */
+    DIA.forEach(d => d.draw(1, 0));
 
     /* Il disegno tecnico della sezione 5 (img-15) usa lo stesso motore
        delle card, ma è statico: si disegna intero e già desaturato, e
@@ -337,8 +549,7 @@ window.SEQ = (function(){
   }
 
   /* Le tappe della virata, in ordine di pagina. Le riempie initTheme
-     leggendo gli attributi data-flip; initCases ne aggiunge una che
-     vive *dentro* la sezione delle card. */
+     leggendo gli attributi data-flip. */
   const stops = [];
 
   /* Un solo scrittore per --t.
@@ -465,11 +676,13 @@ window.SEQ = (function(){
        queste due finestre stanno *prima* di quelle della virata, non
        sopra — a cavallo del fronte il titolo resterebbe un fantasma
        grigio su grigio. */
-    [['#s-via',       '#s01-arte .sticky',     'top 160%','top 120%'],
+    /* #s-via non esiste più (tolta il 2026-09-23): il suo posto in
+       pagina è ora il top di #s02-struttura, quindi le soglie restano
+       le stesse e i due trigger cambiano solo nome. */
+    [['#s02-struttura','#s01-arte .sticky',     'top 160%','top 120%'],
      ['#s03-finiture','#s02-struttura .sticky','top 220%','top 175%'],
-     ['#s-cerniera',  '#s-piuma .sticky',      'top 185%','top 150%'],
-     ['#s-cases',     '#s-cerniera .sticky',   'top bottom','top 78%'],
-     ['#s-perche',    '#s-cantieri .sticky',   'top bottom','top 78%']]
+     ['#s-piuma',     '#s03-finiture .sticky', 'top 220%','top 175%'],
+     ['#s-storia',    '#s-vendita .vendita',   'top bottom','top 78%']]
       .forEach(([entra, esce, start, end])=>{
         if(!document.querySelector(esce) || !document.querySelector(entra)) return;
         gsap.to(esce, {
@@ -505,115 +718,156 @@ window.SEQ = (function(){
      Non più un fondo che sfuma e basta: entra quando il viaggio
      della camera si è fermato, tiene la scena mentre la notte vira
      a cemento, e si congeda alla cerniera. */
+  /* ── il titolo che si scurisce mentre scorri ───────────────
+     Chiesto per il capitolo 01 (2026-09-23): sul cemento il grigio di
+     sistema si legge poco, e quella schermata resta chiara per tutta
+     la sua corsa. Il titolo arriva al massimo contrasto a metà strada
+     e ci resta: se virasse fino in fondo, la parte più leggibile
+     capiterebbe proprio mentre la sezione esce di scena. */
+  function initViraTitolo(){
+    document.querySelectorAll('.sec-display--vira').forEach(el=>{
+      const sez = el.closest('section') || el;
+      /* etichetta e paragrafo della stessa sezione virano insieme al titolo */
+      const bersagli = [el, ...sez.querySelectorAll('.sec-label--vira, .sec-body--vira')];
+      gsap.fromTo(bersagli, {'--nero':0}, {
+        '--nero':1, ease:'none', immediateRender:false,
+        scrollTrigger:{ trigger:sez, start:'top top', end:'45% top', scrub:true }
+      });
+    });
+  }
+
   function initPiuma(){
-    gsap.fromTo('#fx', {autoAlpha:0}, {
+    gsap.fromTo('#nido', {autoAlpha:0}, {
       autoAlpha:1, ease:'none',
-      scrollTrigger:{ trigger:'#s-via', start:'top 90%', end:'top 20%', scrub:true }
+      scrollTrigger:{ trigger:'#s02-struttura', start:'top 90%', end:'top 20%', scrub:true }
     });
 
     /* Il fondo cinematico non si spegne più con una dissolvenza qui:
-       lo ritaglia la tenda della virata (`data-flip-curtain` su
-       #s03-finiture), che lo mangia dall'alto mentre il cemento cala.
+       lo ritaglia la tenda della virata (`data-flip-curtain`, ora su
+       #s02-struttura), che lo mangia dall'alto mentre il fondo gira.
        Sopra i render il cemento non potrebbe farsi vedere, e con la
        virata spostata una sezione più su questa dissolvenza sarebbe
        arrivata troppo tardi. I filamenti seguono --t in applyTheme. */
 
-    gsap.fromTo('#fx', {autoAlpha:1}, {
+    gsap.fromTo('#nido', {autoAlpha:1}, {
       autoAlpha:0, ease:'none', immediateRender:false,
-      scrollTrigger:{ trigger:'#s-cerniera', start:'top 55%', end:'bottom bottom', scrub:true }
+      scrollTrigger:{ trigger:'#s-perche', start:'top 55%', end:'top -60%', scrub:true }
     });
   }
 
   /* ── il mattone: un solo movimento su tre capitoli ───────
      Scende lungo la 4 e la 5 e si schianta nella 6, che è l'arco
      della reference (img-19 → img-22) con un impatto al posto di
-     un appoggio. Le tre sezioni non hanno tre animazioni: hanno
-     tre finestre sullo stesso movimento, e siccome se ne vede una
-     per volta il risultato è continuo.
+     un appoggio. Dal 2026-09-24 è anche un oggetto solo, fisso allo
+     schermo, che scende attraverso le tre sezioni.
      Il valore lo passa `--t`, la stessa manopola del tema: così
      l'inversione chiaro↔scuro dell'oggetto non può andare fuori
      fase col fondo su cui poggia. */
   function initBrick(){
     if(!window.BRICK) return;
-    /* Nei capitoli A e B l'oggetto è PRESENTE E FERMO, in due assetti
-       diversi — è quello che fa la reference (img-10 e img-15: la piuma
-       c'è, sospesa, e fra l'una e l'altra ha solo ruotato). La caduta
-       succede nel capitolo C. Spalmare i 120 fotogrammi su tutti e tre
-       darebbe 117 px per frame: la sequenza si vedrebbe a scatti. */
-    const fermi = [
-      ['#s02-struttura .duo__oggetto', 0.06],
-      ['#s03-finiture .duo__oggetto',  0.26]
-    ];
-    let montati = 0;
-    fermi.forEach(([sel, f])=>{
-      const el = document.querySelector(sel);
-      if(el && BRICK.monta(el, f, f)) montati++;
-    });
-    const cadutaEl = document.querySelector('#s-piuma .piuma__oggetto');
+    /* Dal 2026-09-24 il mattone è UNO: sta nel fondo fisso
+       (.mattone-volo) e attraversa 02, 03 e piuma. Prima c'erano due
+       mattoni fermi nelle colonne della 02 e della 03 più la caduta
+       nella piuma; il committente voleva un oggetto solo che cade da
+       sopra e si schianta su GRAVITA'. Due tempi:
+       - discesa: fotogramma 0, la y va da fuori schermo in alto alla
+         posizione di partenza del bake, per tutta la 02 e la 03;
+       - caduta: i fotogrammi, dentro la piuma, come prima. */
+    const cadutaEl = document.querySelector('.mattone-volo');
     const caduta = cadutaEl && BRICK.monta(cadutaEl, 0, 1);
-    if(caduta) montati++;
-    if(!montati) return;
+    if(!caduta) return;
     BRICK.preload();
 
     const luce = ()=> parseFloat(
       getComputedStyle(root).getPropertyValue('--t')) || 0;
 
-    /* I due fermi si disegnano una volta e seguono solo il valore. */
+    /* Dove sta il riquadro del bake, in % della sua altezza. Nel
+       fotogramma 0 il mattone occupa la fascia alta (0-17%) e il
+       pavimento, con l'ombra, sta sotto: finché il riquadro scorre, il
+       pavimento andrebbe in giro con lui (un'ombra che fluttua, il
+       bordo del piano a metà schermo). Per questo nella discesa si
+       ritaglia tutto quello che sta sotto il mattone.
+       DA → A: il mattone entra da sopra e arriva a un terzo di schermo
+       a fine 03; nella caduta la traslazione si riassorbe con la stessa
+       accelerazione del bake (t^2.6, U_IMPATTO 0,62 in
+       assets/3d/render_brick.py), così la somma scende sempre e il
+       pavimento torna al suo posto proprio all'impatto. */
+    /* U0: nei primi ~30 fotogrammi del bake il mattone esce dal bordo
+       alto dell'inquadratura e si vedeva tagliato di netto. Dal 33 in
+       poi è intero: discesa e caduta partono da lì. */
+    const DA = -40, A = 30, U_IMPATTO = .62, U0 = .27;
+    /* quota del mattone nel bake (render_brick.py → caduta), 1 = partenza */
+    const quota = u => 1 - Math.pow(Math.min(1, u / U_IMPATTO), 2.6);
+    /* p della caduta → fotogramma: fino all'impatto si parte da U0, dopo
+       resta com'era, così lo schianto cade ancora al 43,4% della piuma */
+    const fot = p => p < U_IMPATTO ? U0 + (U_IMPATTO - U0) * p / U_IMPATTO : p;
+    const posa = (y, taglio)=>{
+      cadutaEl.style.transform = `translateY(${y}%)`;
+      cadutaEl.style.clipPath  = taglio ? 'inset(0 0 45% 0)' : '';
+    };
+    posa(DA, true);
+
+    /* ── L'attraversamento (committente, 2026-09-24) ──
+       Il mattone non plana più: attraversa ogni schermata a velocità
+       costante, entrando dall'alto e uscendo dal basso, e passa al CENTRO
+       dello schermo (y = A) proprio mentre sale il titolo della sezione.
+       Tre passaggi: 02, 03 e l'ultimo, che sulla gravità diventa la caduta.
+       x = schermi di scroll da quando la 02 arriva in cima allo schermo.
+       CENTRI: dove il mattone è al centro. Le finestre dei titoli di 02 e
+       03 (data-rivela in index.html) sono centrate sugli stessi punti.
+       Il salto da y = 100 (appena sotto lo schermo) a y = −40 (appena
+       sopra) avviene a mattone invisibile, quindi non si vede. */
+    const CENTRI = [0.3, 3.8, 7.0];      /* 7,0 = la piuma arriva in cima */
+    const GIRO = 140;                     /* da −40 a 100: un attraversamento */
+    const PRIMA = 40;                     /* velocità d'ingresso nella 02, in % di schermo per schermo */
+    const xDa = CENTRI[0] - (A - DA) / PRIMA;
+    const attraversa = x=>{
+      if(x <= CENTRI[0]) return Math.max(DA, A - PRIMA * (CENTRI[0] - x));
+      for(let i = 1; i < CENTRI.length; i++){
+        if(x <= CENTRI[i]){
+          const v = GIRO / (CENTRI[i] - CENTRI[i-1]);
+          let y = A + v * (x - CENTRI[i-1]);
+          if(y > 100) y -= GIRO;
+          return y;
+        }
+      }
+      return A;
+    };
     ScrollTrigger.create({
-      trigger:'#s02-struttura', start:'top bottom',
-      endTrigger:'#s03-finiture', end:'bottom bottom',
+      trigger:'#s02-struttura', start:`top ${-xDa * 100}%`,
+      endTrigger:'#s-piuma', end:'top top',
       scrub:true, invalidateOnRefresh:true,
-      onUpdate(){ BRICK.draw(0, luce()); },
-      onRefresh(){ BRICK.draw(0, luce()); }
+      onUpdate(self){ posa(attraversa(xDa + (scrollY - self.start) / innerHeight), true); BRICK.draw(U0, luce()); },
+      onRefresh(self){ posa(attraversa(xDa + (scrollY - self.start) / innerHeight), true); BRICK.draw(U0, luce()); }
+    });
+    /* la traslazione si consuma quanto il mattone scende nel bake */
+    const inCaduta = p=> posa(A * quota(fot(p)) / quota(U0), false);
+
+    /* Sotto Perché e oltre il mattone non deve vedersi (committente,
+       2026-09-24: si vedeva dietro le card delle opere, che sono
+       trasparenti). Si spegne quando il pannello nero ha già coperto
+       tutto lo schermo, quindi lo scambio non si vede. */
+    ScrollTrigger.create({
+      trigger:'#s-perche', start:'top top',
+      onToggle(self){ gsap.set(cadutaEl, {autoAlpha: self.isActive || self.progress >= 1 ? 0 : 1}); },
+      end:'max'
     });
 
     /* La caduta occupa il primo 70% del capitolo C: 6.480 × 0,7 / 120 =
        38 px per fotogramma, dentro la banda 25-45. Il resto della
        sezione il mattone sta fermo mentre il titolo finisce di
        accendersi — che è anche la coreografia giusta. */
-    if(caduta){
+    {
       ScrollTrigger.create({
         trigger:'#s-piuma', start:'top top', end:'70% top',
         scrub:true, invalidateOnRefresh:true,
-        onUpdate(self){ caduta.ultimo = self.progress; BRICK.draw(self.progress, luce()); },
-        onRefresh(self){ BRICK.draw(self.progress, luce()); }
+        onUpdate(self){ inCaduta(self.progress); caduta.ultimo = fot(self.progress); BRICK.draw(fot(self.progress), luce()); },
+        onRefresh(self){ if(self.progress > 0){ inCaduta(self.progress); BRICK.draw(fot(self.progress), luce()); } }
       });
 
-      /* Il congedo: l'oggetto non esce di scena, si sfalda nel campo di
-         filamenti — è quello che fa la piuma della reference, che si
-         dissolve nelle piume di secondo piano invece di sparire (img-10).
-         Due manopole gemelle sulla stessa corsa: l'opacità dell'oggetto
-         scende mentre la sfaldatura sale.
-
-         La finestra è 62% → 78% dell'altezza della sezione, non 85% →
-         fondo: lo sticky si stacca a (altezza − 100vh), cioè all'83,3%
-         di una sezione da 600vh, e tutto quello che sta oltre cade fuori
-         dalla parte visibile. Sta anche *prima* della tenda che riporta
-         la notte per la cerniera (che scatta attorno all'87%): il
-         congedo deve compiersi su un fondo solo, non a cavallo del
-         fronte. Il faretto nel frattempo è sulle ultime due righe. */
-      const feather = ()=> window.FX && FX._all && FX._all.feather;
-      /* il centro si misura solo mentre la sezione è in vista: al
-         refresh sta ancora sotto la piega e darebbe coordinate assurde */
-      const centro = ()=>{
-        const f = feather(); if(!f || !cadutaEl) return;
-        const r = cadutaEl.getBoundingClientRect();
-        if(!r.width || !innerWidth) return;
-        /* il mattone posato sta al centro-basso del suo riquadro */
-        f.params.sfaldaX = (r.left + r.width * .5) / innerWidth;
-        f.params.sfaldaY = Math.max(0, Math.min(1,
-                             (r.top + r.height * .80) / innerHeight));
-      };
-      ScrollTrigger.create({
-        trigger:'#s-piuma', start:'62% top', end:'78% top',
-        scrub:true, invalidateOnRefresh:true,
-        onUpdate(self){
-          const f = feather(); if(!f) return;
-          centro();
-          f.params.sfalda = self.progress;
-          BRICK.opacita(1 - self.progress);
-        }
-      });
+      /* Il congedo (dissolvenza 62%→78%) è stato tolto il 2026-09-24:
+         ora «Perché Salzillo» sale come un pannello opaco e copre il
+         mattone schiantato, che resta al suo posto fino all'ultimo. */
     }
   }
 
@@ -641,6 +895,8 @@ window.SEQ = (function(){
     setTimeout(dipingi, 1600);
   }
 
+  /* L'apertura guidata dallo scroll era stata tolta il 2026-09-23, con le
+     opere ferme a pagina; il committente l'ha rivoluta il 2026-09-24. */
   /* ── le due card: disegno → desaturazione → apertura ─────
      Un unico trigger scandisce le tre transizioni in sequenza.
      Il velo è un rettangolo fisso ritagliato sulla prima card e
@@ -675,7 +931,7 @@ window.SEQ = (function(){
     };
 
     const master = ScrollTrigger.create({
-      trigger:sec, start:'top top', end:'bottom bottom',
+      trigger:sec, start:'top top', end:FINE_CON_CODA,
       scrub:true, invalidateOnRefresh:true,
       onRefresh:measure,
       onUpdate(self){
@@ -698,7 +954,10 @@ window.SEQ = (function(){
 
         /* 3 · il contenuto delle card lascia il campo */
         gsap.set(guts,     {autoAlpha: 1 - mp(.60, .84, v)});
-        gsap.set(cards[1], {autoAlpha: 1 - mp(.55, .78, v)});
+        /* tutte le card tranne la prima: il velo si apre sulla prima,
+           le altre si spengono mentre lui cresce (da due che erano,
+           ora sono tre — cantieri, ristrutturazioni, in vendita) */
+        gsap.set(cards.slice(1), {autoAlpha: 1 - mp(.55, .78, v)});
       }
     });
 
@@ -715,6 +974,11 @@ window.SEQ = (function(){
     stops.sort((a,b)=> a.start() - b.start());
   }
 
+
+  /* Le frecce della storia e initGallerie() sono state tolte il
+     2026-09-24: anche la storia avanza con lo scroll, come le gallerie
+     delle opere (vedi initScroll). */
+
   function initScroll(){
     if(!window.gsap || !window.ScrollTrigger) return;
     gsap.registerPlugin(ScrollTrigger);
@@ -729,7 +993,7 @@ window.SEQ = (function(){
          sull'ultimo e sopra entra la piuma (come nel reference). */
       ScrollTrigger.create({
         trigger:'#hero-spacer', start:'top top',
-        endTrigger:'#s01-arte', end:'bottom bottom',
+        endTrigger:'#s01-arte', end:FINE_CON_CODA,
         onUpdate(self){ state.target = self.progress * (FRAME_COUNT-1); tick(); }
       });
 
@@ -743,6 +1007,7 @@ window.SEQ = (function(){
         scrollTrigger:{ trigger:'#hero-spacer', start:'40% top', end:'90% top', scrub:true }
       });
 
+      initViraTitolo();
       initPiuma();
       initBrick();
       initCases();
@@ -754,6 +1019,12 @@ window.SEQ = (function(){
          resta il bordo della precedente col suo contatore — è la
          differenza fra la reference «che ci arriva piano» e il sito che
          «parte già così». La storia invece parte a filo, com'era. */
+      /* Le gallerie delle opere finiscono con l'ULTIMA foto al centro e
+         restano ferme lì per un tratto (SOSTA_FINALE) prima di lasciare
+         la schermata: prima la corsa si chiudeva con la [4] ancora sul
+         bordo destro e la sezione scivolava via (committente,
+         2026-09-24: «scorre a ristrutturazioni senza finire»). */
+      const SOSTA_FINALE = 'bottom bottom+=60%';
       [['#s-cantieri','.cases-track', true],
        ['#s-ristrutturazioni','.cases-track', true],
        ['#s-storia','.storia-track', false]].forEach(([sec, sel, daDestra])=>{
@@ -761,10 +1032,16 @@ window.SEQ = (function(){
         const track = sezione && sezione.querySelector(sel);
         if(!track) return;
         const da = ()=> daDestra ? innerWidth * .34 : 0;
-        const a  = ()=> -(track.scrollWidth - innerWidth) - (daDestra ? innerWidth * .06 : 0);
+        const ultima = track.lastElementChild;
+        /* centro dell'ultima carta a track ferma (x = 0), letto togliendo
+           la x che la track ha nell'istante della misura */
+        const a = daDestra
+          ? ()=>{ const r = ultima.getBoundingClientRect();
+                  return innerWidth / 2 - (r.left + r.width / 2 - gsap.getProperty(track, 'x')); }
+          : ()=> -(track.scrollWidth - innerWidth);
         gsap.fromTo(track, {x: da}, {
           x: a, ease:'none',
-          scrollTrigger:{ trigger:sec, start:'top top', end:'bottom bottom',
+          scrollTrigger:{ trigger:sec, start:'top top', end:SOSTA_FINALE,
                           scrub:true, invalidateOnRefresh:true }
         });
 
@@ -781,7 +1058,7 @@ window.SEQ = (function(){
         const carte  = [...track.querySelectorAll('.case')];
         if(uscita && carte.length){
           ScrollTrigger.create({
-            trigger:sec, start:'top top', end:'bottom bottom', scrub:true,
+            trigger:sec, start:'top top', end:SOSTA_FINALE, scrub:true,
             onUpdate(){
               const mezzo = innerWidth / 2;
               let vicina = carte[0], min = Infinity;
@@ -804,10 +1081,11 @@ window.SEQ = (function(){
     mm.add('(max-width: 900px)', ()=>{
       state.disabled = true;               /* il canvas frame non si usa */
       if(canvas) gsap.set(canvas, {display:'none'});
+      if(front)  gsap.set(front,  {display:'none'});
       document.querySelectorAll('.bg__still').forEach((im,i)=>{
         gsap.to(im, {
           autoAlpha:1,
-          scrollTrigger:{ trigger:['#hero-spacer','#s01-arte','#s-cerniera'][i] || '#hero-spacer',
+          scrollTrigger:{ trigger:['#hero-spacer','#s01-arte','#s-perche'][i] || '#hero-spacer',
                           start:'top 60%', toggleActions:'play none none reverse' }
         });
       });
@@ -832,20 +1110,6 @@ window.SEQ = (function(){
     });
   }
 
-  /* filtro della sezione servizi (chip → card) */
-  function initFiltro(){
-    const chips = document.querySelectorAll('#s-servizi .chip');
-    const cards = document.querySelectorAll('#s-servizi .svc');
-    chips.forEach(chip=>{
-      chip.addEventListener('click', ()=>{
-        chips.forEach(c=>c.classList.toggle('is-active', c===chip));
-        const f = chip.dataset.filter;
-        cards.forEach(card=>{ card.hidden = f !== 'all' && card.dataset.cat !== f; });
-        if(window.ScrollTrigger) ScrollTrigger.refresh();
-      });
-    });
-  }
-
   function init(){
     startLoading();
     mountDiagrams();
@@ -865,7 +1129,6 @@ window.SEQ = (function(){
         : TYPE.init(page);
     }
 
-    initFiltro();
     sizeLogoMorph();
   }
 

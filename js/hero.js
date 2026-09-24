@@ -20,6 +20,9 @@ window.HERO = (function(){
   const EASE_IO  = 'power2.inOut';
 
   let tl = null;
+  /* i blocchi del titolo, calcolati in setInitial e usati da build:
+     gli estremi si aprono, le cerniere in mezzo entrano di lato */
+  let estremi = [], cerniere = [];
 
   function setInitial(){
     gsap.set(preloader, {autoAlpha:1});
@@ -29,12 +32,31 @@ window.HERO = (function(){
 
     gsap.set(['.hd', '.grid', '.lockup', '.corner'], {autoAlpha:0});
     gsap.set('.logo-morph', {autoAlpha:0, scale:.92, transformOrigin:'50% 50%'});
-    gsap.set('#seq', {opacity:0});
-    /* le due righe partono oltre la linea centrale immaginaria:
-       la prima sotto la sua maschera (entrerà salendo), la seconda
-       sopra la sua (entrerà scendendo) */
-    gsap.set('.display .line:first-child .line__in', {yPercent:105});
-    gsap.set('.display .line:last-child .line__in',  {yPercent:-105});
+    gsap.set(['#seq', '#seqFront'], {opacity:0});
+    /* Le parole grandi partono oltre la linea centrale immaginaria: la
+       prima sotto la sua maschera (entrerà salendo), l'ultima sopra la
+       sua (entrerà scendendo). A tre blocchi quel senso resta sulle due
+       grandi, e PER — la cerniera in mezzo — sale da sotto la sua
+       maschera come la prima, ma in ritardo: l'entrata di lato era più
+       ricca, il committente l'ha vista dal vivo e ha chiesto lo stesso
+       movimento verticale delle altre (2026-09-23). Il titolo si legge
+       ancora in tre tempi, ma tutti nello stesso verso.
+       I blocchi si leggono a runtime e non per selettore fisso: con le
+       copy a due (?copy=2, ?copy=3) il terzo è nascosto, e gli estremi
+       tornano a essere quei due — coreografia identica a prima. Senza
+       stato iniziale il blocco di mezzo comparirebbe subito, visibile
+       già mentre il preloader se ne va. */
+    const blocchi = $$('.display .line')
+      .filter(l => getComputedStyle(l).display !== 'none')
+      .map(l => l.querySelector('.line__in'))
+      .filter(Boolean);
+
+    estremi  = blocchi.length > 1 ? [blocchi[0], blocchi[blocchi.length - 1]] : blocchi;
+    cerniere = blocchi.slice(1, -1);
+
+    if(estremi[0]) gsap.set(estremi[0], {yPercent:105, xPercent:0});
+    if(estremi[1]) gsap.set(estremi[1], {yPercent:-105, xPercent:0});
+    if(cerniere.length) gsap.set(cerniere, {yPercent:105, xPercent:0});
     gsap.set('.display', {autoAlpha:1});
     gsap.set('.hero',    {autoAlpha:1});
 
@@ -78,18 +100,37 @@ window.HERO = (function(){
       .add(()=>{ if(window.SEQ) SEQ.show(); }, '+=0.55')
       .to('#seq',        {opacity:1, duration:.9, ease:EASE_IO}, '<')
       .to('.logo-morph', {autoAlpha:0, duration:.9, ease:EASE_IO}, '<+0.15')
+      /* Il palazzo in primo piano entra INSIEME alla dissolvenza del
+         marchio, non insieme al fondo: sta sopra la .logo-morph e, se
+         si accendesse prima, le torri renderizzate coprirebbero
+         proprio le due curve della SC — cioè il match-cut. */
+      .to('#seqFront',   {opacity:1, duration:.9, ease:EASE_IO}, '<')
 
       /* ── 3. la griglia prende il posto della linea ── */
       .to('.grid', {autoAlpha:1, duration:.9}, '-=0.35')
 
-      /* ── 4. le righe si aprono dalla linea centrale: la prima
-             sale, la seconda scende, insieme ── */
-      .to('.display .line__in', {yPercent:0, duration:1.15}, '-=0.65')
+      /* ── 4. le parole si aprono dalla linea centrale: la prima sale,
+             l'ultima scende, insieme; la cerniera in mezzo (PER) sale
+             anche lei ma sfalsata, così il titolo si legge in tre tempi
+             e non come un blocco solo ── */
+      /* Una label, non più una catena di `-=`: la cerniera aggiunge un
+         tween in mezzo, e con i soli tempi relativi tutto ciò che viene
+         dopo slitterebbe dietro di lei. Ancorando a `titolo` i tempi
+         restano quelli di prima anche a due blocchi, quando la cerniera
+         non esiste. */
+      .addLabel('titolo', '-=0.65')
+      .to(estremi, {yPercent:0, duration:1.15}, 'titolo');
 
-      /* ── 5. il resto si appoggia ── */
-      .to('.hd',      {autoAlpha:1, duration:.8}, '-=0.85')
-      .to('.lockup',  {autoAlpha:1, duration:.8}, '-=0.7')
-      .to('.corner',  {autoAlpha:1, duration:.7, stagger:.08}, '-=0.6');
+    /* PER esce insieme a COSTRUITO e RESTARE, stessa durata e stesso
+       istante (committente, 2026-09-24): prima era sfalsata di 0,30 s. */
+    if(cerniere.length){
+      tl.to(cerniere, {yPercent:0, duration:1.15}, 'titolo');
+    }
+
+    /* ── 5. il resto si appoggia ── */
+    tl.to('.hd',      {autoAlpha:1, duration:.8}, 'titolo+=0.30')
+      .to('.lockup',  {autoAlpha:1, duration:.8}, 'titolo+=0.45')
+      .to('.corner',  {autoAlpha:1, duration:.7, stagger:.08}, 'titolo+=0.55');
 
     /* L'intro è l'unica cosa della pagina che gira a tempo proprio, ed è
        anche l'unico punto in cui i secondi contano: il committente
@@ -129,7 +170,9 @@ window.HERO = (function(){
        (coreografia in scroll.js), come nel reference. */
     window.FX.register({id:'none', name:'Nessuno', params:{speed:0}, schema:[], draw(){}});
     window.FX.mount($('#fx'), $('#fx3d'));
-    window.FX.use('feather');
+    /* i filamenti sono stati sostituiti dal nido d'ape (2026-09-24):
+       il loop di disegno resta spento */
+    window.FX.use('none');
   }
 
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
