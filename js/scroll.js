@@ -182,8 +182,9 @@ window.SEQ = (function(){
 
   function startLoading(){
     if(!canvas) return;
-    /* sotto i 900px il canvas non si usa (fondi fissi): basta il primo */
-    const mobile = matchMedia('(max-width: 900px)').matches;
+    /* Dal 2026-09-25 la torre si muove anche sul telefono (scelta del
+       committente): la coda dei frame e delle silhouette è la stessa
+       del desktop su tutti i formati. */
     const pronto = ()=>{
       if(state.ready) return;
       state.ready = true;
@@ -191,7 +192,7 @@ window.SEQ = (function(){
     };
     /* tutta la torre va in coda SUBITO, prima che il mattone
        (priorità 1) trovi slot liberi mentre arriva il primo frame */
-    const ordine = mobile ? [] : CODA.ordine(FRAME_COUNT).filter(i=>i);
+    const ordine = CODA.ordine(FRAME_COUNT).filter(i=>i);
     let mancano = 1 + ordine.filter(i=>i % PASSATA === 0).length;
     const segna = ()=>{ if(--mancano === 0) pronto(); };
     loadFrame(0, ok=>{
@@ -203,13 +204,11 @@ window.SEQ = (function(){
 
     /* le silhouette non entrano nel conto del preloader: l'intro non
        le aspetta, il primo piano si accende quando sono arrivate */
-    if(!mobile){
-      CODA.ordine(MATTE_COUNT).forEach(i=>{
-        CODA.prendi(mattePath(i), 2, im=>{
-          if(im){ mattes[i] = im; if(state.shown) draw(true); }
-        });
+    CODA.ordine(MATTE_COUNT).forEach(i=>{
+      CODA.prendi(mattePath(i), 2, im=>{
+        if(im){ mattes[i] = im; if(state.shown) draw(true); }
       });
-    }
+    });
   }
 
   function whenReady(cb, timeout){
@@ -235,11 +234,32 @@ window.SEQ = (function(){
     return -1;
   }
 
-  function metrics(im){
+  /* Sul telefono in verticale si vede un terzo della larghezza del
+     frame, e nell'ultimo tratto della discesa la torre scivola a
+     sinistra (dal 50% al 30% del frame): con l'inquadratura centrata
+     usciva dallo schermo. Qui la finestra la insegue (2026-09-25).
+     Punti misurati sui frame 1…240; al frame 0 resta il centro, così
+     il marchio che diventa torre combacia ancora. Solo sotto i 900px:
+     sul desktop il taglio laterale è di pochi pixel e non si tocca. */
+  const FUOCO = [[0,.50],[170,.50],[200,.41],[240,.30]];
+  const stretto = matchMedia('(max-width: 900px)');
+  function fuoco(i){
+    for(let k=1; k<FUOCO.length; k++){
+      const [a, fa] = FUOCO[k-1], [b, fb] = FUOCO[k];
+      if(i <= b) return fa + (fb - fa) * clamp01((i - a) / (b - a));
+    }
+    return FUOCO[FUOCO.length-1][1];
+  }
+
+  function metrics(im, i){
     const cw = canvas.clientWidth, ch = canvas.clientHeight;
     const s  = Math.max(cw/im.width, ch/im.height);
-    return { cw, ch, s,
-             dx:(cw - im.width *s)/2,
+    let dx = (cw - im.width*s)/2;
+    if(stretto.matches && i){
+      dx = cw/2 - im.width*s*fuoco(i);
+      dx = Math.min(0, Math.max(cw - im.width*s, dx));
+    }
+    return { cw, ch, s, dx,
              dy:(ch - im.height*s)/2 };
   }
 
@@ -266,7 +286,7 @@ window.SEQ = (function(){
     if(canvas.width !== Math.round(cw*dpr) || canvas.height !== Math.round(ch*dpr)){
       canvas.width = Math.round(cw*dpr); canvas.height = Math.round(ch*dpr);
     }
-    const m = metrics(im);
+    const m = metrics(im, j);
 
     if(fondoNuovo){
       ctx.setTransform(dpr,0,0,dpr,0,0);
@@ -1075,19 +1095,22 @@ window.SEQ = (function(){
       });
     });
 
-    /* ── mobile: niente scrub né apertura, ma i temi restano ──
-       Le sezioni chiare devono restare chiare anche senza scrub:
-       --t si commuta a gradini all'ingresso di ogni sezione. */
-    mm.add('(max-width: 900px)', ()=>{
-      state.disabled = true;               /* il canvas frame non si usa */
-      if(canvas) gsap.set(canvas, {display:'none'});
-      if(front)  gsap.set(front,  {display:'none'});
-      document.querySelectorAll('.bg__still').forEach((im,i)=>{
-        gsap.to(im, {
-          autoAlpha:1,
-          scrollTrigger:{ trigger:['#hero-spacer','#s01-arte','#s-perche'][i] || '#hero-spacer',
-                          start:'top 60%', toggleActions:'play none none reverse' }
-        });
+    /* ── mobile: la torre scende con lo scroll, il resto a gradini ──
+       Dal 2026-09-25 (committente) anche sul telefono la discesa della
+       camera è guidata dallo scroll, con lo stesso trigger del desktop,
+       e la hero se ne va come sul desktop: prima restava fissa sullo
+       schermo e si vedeva sotto tutte le sezioni.
+       Niente mattone in volo né apertura delle card: le sezioni sono a
+       contenuto, e --t si commuta a gradini all'ingresso di ognuna. */
+    mm.add('(max-width: 900px) and (prefers-reduced-motion: no-preference)', ()=>{
+      ScrollTrigger.create({
+        trigger:'#hero-spacer', start:'top top',
+        endTrigger:'#s01-arte', end:FINE_CON_CODA,
+        onUpdate(self){ state.target = self.progress * (FRAME_COUNT-1); tick(); }
+      });
+      gsap.fromTo(['.hero','.lockup','.corner','.grid'], {autoAlpha:1, y:0}, {
+        autoAlpha:0, y:-30, ease:'none', immediateRender:false,
+        scrollTrigger:{ trigger:'#hero-spacer', start:'25% top', end:'70% top', scrub:true }
       });
       /* la virata la guida sempre applyTheme, qui a scatti */
       stepped = true;
@@ -1095,8 +1118,6 @@ window.SEQ = (function(){
       applyTheme();
       DIA.forEach(d => d.draw(1, 0));
       posaMattone();
-      gsap.set(['.hero','.lockup','.corner'], {clearProps:'all'});
-      return ()=>{ state.disabled = false; if(state.shown) draw(true); };
     });
 
     /* ── reduced-motion: tutto leggibile, niente scrub né pin ── */

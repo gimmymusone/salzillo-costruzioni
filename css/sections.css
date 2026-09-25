@@ -570,7 +570,11 @@ html{font-size:1.05vw}
 
 /* ── Mobile ───────────────────────────────────────────────── */
 @media (max-width:900px){
-  #hero-spacer{height:120vh}
+  /* la corsa della camera sulla torre (2026-09-25: la torre si muove
+     anche qui); dopo la 01 le sezioni hanno fondo pieno, così lo stage
+     fisso non trapela più sotto il testo */
+  #hero-spacer{height:220vh}
+  #s02-struttura,#s03-finiture,#s-piuma,#s-cases{background:var(--bg)}
   .chapter, .chapter--m{height:auto}
   .chapter .sticky, #s-cerniera .sticky, #s-cantieri .sticky,
   #s-ristrutturazioni .sticky,
@@ -585,7 +589,6 @@ html{font-size:1.05vw}
   .cases-choice{flex-direction:column;gap:1.4rem;max-width:none}
   .case-card{aspect-ratio:4/3}
   .cases-veil{display:none}          /* niente apertura: le card restano card */
-  .bg__still{display:block}
   /* la galleria si impila: nome e categoria tornano in flusso, altrimenti
      restano in posizione assoluta sopra le foto e spariscono */
   .galleria__nome,.galleria__cat{position:static;text-align:left;padding:0 1.8rem}
