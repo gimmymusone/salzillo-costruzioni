@@ -988,23 +988,26 @@ window.SEQ = (function(){
      di 02, 03 e piuma. Seconda versione, dopo la prova sull'iPhone del
      committente: seguire i riquadri a ogni scroll lo faceva traballare
      (Safari muove la pagina prima che il JS sposti il livello fisso).
-     Ora la sua posizione non dipende MAI dallo scroll:
-     - quando entra la 02 scende da sopra con un'animazione a tempo e si
-       ferma quasi al centro dello schermo; da lì non si muove più, e
-       sono 02, 03 e piuma a scorrergli sopra;
+     Ora non è mai agganciato al pixel del testo:
+     - entra dall'alto nella 01 e scende piano, con uno scrub ammorbidito,
+       mentre 01, 02, 03 e piuma gli scorrono sopra;
      - resta sospeso (fotogramma U0) finché non arriva il titolo della
        piuma; poi cade mentre il pallino scende TEMPO / E, e rompe il
        pavimento esattamente quando il pallino arriva su GRAVITA', che a
-       quel punto è già salita sopra di lui;
-     - Perché Salzillo, col suo fondo nero, gli passa sopra e lo copre.
-     Scrollando indietro oltre l'inizio della 02 risale e sparisce. */
+       quel punto è già salita sopra di lui, in basso, col nero di
+       Perché Salzillo già sotto le crepe;
+     - Perché Salzillo sale e lo copre.
+     Scrollando indietro oltre l'inizio della 01 risale e sparisce. */
   function mattoneTelefono(){
     const el = document.querySelector('.mattone-volo');
     const titolo = document.querySelector('#s-piuma .sec-display--st');
     const fondo = document.querySelector('#bg');
     if(!window.BRICK || !el || !titolo || !fondo) return;
     if(!el.querySelector('canvas')) BRICK.monta(el, 0, 1);
-    const U0 = .27, U_IMPATTO = .62, CADE = .55, ROMPE = .75 / .875;
+    /* ROMPE: un filo oltre il punto in cui il pallino salta su GRAVITA'
+       (.75 / .875), così lo schianto non lo anticipa mai; APRE: quanta
+       corsa servono alle crepe per aprirsi tutte, prima che il nero salga */
+    const U0 = .27, U_IMPATTO = .62, CADE = .55, ROMPE = .77 / .875, APRE = .05;
     /* Prima di tutto il fotogramma sospeso, davanti alla torre: è il
        primo che si vede, e in coda arrivava dopo tutto il resto (al
        primo scroll c'era solo l'ombra). Poi solo quelli che servono:
@@ -1014,23 +1017,6 @@ window.SEQ = (function(){
     BRICK.preload(true, i => i >= primo && (i - primo) % 2 === 0);
     BRICK.opacita(1);
 
-    /* quasi al centro: a metà del fondo fisso, che è alto quanto lo
-       schermo con la barra di Safari nascosta */
-    const centro = ()=> Math.round((fondo.clientHeight - el.offsetHeight) / 2);
-    const fuori  = ()=> -el.offsetHeight;
-    gsap.set(el, {y:fuori(), autoAlpha:0});
-    /* scende mentre sale la 01, quando la torre se n'è appena andata:
-       passa dietro anche al testo della 01 (committente, 2026-09-25) */
-    ScrollTrigger.create({
-      trigger:'#s01-arte', start:'top 50%', end:'max',
-      onToggle(self){
-        gsap.to(el, self.isActive
-          ? {y:centro(), autoAlpha:1, duration:.9, ease:'power3.out', overwrite:true}
-          : {y:fuori(),  autoAlpha:0, duration:.5, ease:'power2.in',  overwrite:true});
-      },
-      onRefresh(self){ gsap.set(el, self.isActive ? {y:centro(), autoAlpha:1} : {y:fuori(), autoAlpha:0}); }
-    });
-
     /* Il bake: sospeso a U0, cade fino all'impatto (0,62 = m_075) e poi
        apre le crepe. La corsa è quella del faretto del titolo sul
        telefono (data-ignite-*-m, js/type.js): il pallino è sull'ultima
@@ -1038,7 +1024,7 @@ window.SEQ = (function(){
        (data-ignite-fine="ultima"), cioè al 75/87,5 = 85,7% del trigger. */
     const fot = q => q < CADE  ? U0
                    : q < ROMPE ? U0 + (U_IMPATTO - U0) * (q - CADE) / (ROMPE - CADE)
-                   : U_IMPATTO + (1 - U_IMPATTO) * Math.min(1, (q - ROMPE) / (1 - ROMPE));
+                   : U_IMPATTO + (1 - U_IMPATTO) * Math.min(1, (q - ROMPE) / APRE);
     const st = ScrollTrigger.create({
       trigger:titolo,
       start:titolo.dataset.igniteStartM || 'top 95%',
@@ -1046,6 +1032,37 @@ window.SEQ = (function(){
       onUpdate:s => BRICK.draw(fot(s.progress), 1),
       onRefresh:s => BRICK.draw(fot(s.progress), 1)
     });
+
+    /* ── la discesa (terza versione, committente 2026-09-25) ──
+       Fermo al centro sembrava sospeso; agganciato ai riquadri
+       traballava. Ora scende piano per tutta la corsa, dalla 01 fino
+       allo schianto, e ci arriva in BASSO: quando il pallino è su
+       GRAVITA' il riquadro poggia sul bordo di Perché Salzillo, così
+       sotto il pavimento rotto c'è già il nero, che poi sale e lo copre.
+       Lo scrub è ammorbidito (insegue lo scroll con un filo di ritardo,
+       a ogni frame): non è agganciato al testo, quindi su Safari non
+       trema come quando lo seguiva al pixel. */
+    const perche = document.querySelector('#s-perche');
+    const H = ()=> el.offsetHeight;
+    const quandoRompe = ()=> st.start + ROMPE * (st.end - st.start);
+    /* dove sta il riquadro allo schianto: nel fotogramma dell'impatto il
+       mattone occupa il 70-90% della sua altezza e le crepe arrivano al
+       fondo; il riquadro finisce poco sopra il nero, così il mattone è
+       intero e sotto le crepe comincia Perché Salzillo */
+    const yRompe = ()=> perche
+      ? perche.getBoundingClientRect().top + scrollY - quandoRompe() - H() - 16
+      : fondo.clientHeight - H();
+    const yAlto = ()=> Math.round(fondo.clientHeight * .1);
+    gsap.timeline({
+      scrollTrigger:{
+        trigger:'#s01-arte', start:'top 60%',
+        end:()=> quandoRompe(),
+        scrub:.8, invalidateOnRefresh:true
+      }
+    })
+      .fromTo(el, {y:()=> -H(), autoAlpha:0}, {y:yAlto, autoAlpha:1, ease:'power2.out', duration:.12})
+      .to(el, {y:yRompe, ease:'none', duration:.88});
+
     /* i fotogrammi arrivano in differita: si ridipinge quando ci sono */
     const ridipingi = ()=> BRICK.draw(fot(st.progress), 1);
     ridipingi();
