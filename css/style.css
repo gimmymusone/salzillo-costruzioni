@@ -372,13 +372,24 @@ body{
   .hd__mark{width:30px}
   .hd__right{display:none}
 
+  /* Niente flex né gap dentro il <button>: Safari su iPhone ne avvolge
+     il contenuto in un blocco interno che si stringe sul contenuto, e
+     le due righe — vuote — finivano larghe zero: il ☰ non si vedeva mai
+     (committente, 2026-09-25). Righe a misura fissa, centrate a mano. */
   .hd__burger{
-    display:flex;flex-direction:column;justify-content:center;gap:7px;
-    width:44px;height:44px;margin-right:-10px;padding:0 10px;
-    background:none;border:0;cursor:pointer;
+    display:block;position:relative;flex:0 0 auto;
+    width:44px;height:44px;margin-right:-10px;padding:0;
+    background:none;border:0;border-radius:0;cursor:pointer;
+    -webkit-appearance:none;appearance:none;
+    -webkit-tap-highlight-color:transparent;
   }
   /* ☰ nel blu del marchio, come il simbolo accanto (2026-09-25) */
-  .hd__burger span{display:block;height:2px;background:var(--marchio-blu);transition:transform .3s ease}
+  .hd__burger span{
+    position:absolute;left:10px;width:24px;height:2px;
+    background:var(--marchio-blu);transition:transform .3s ease;
+  }
+  .hd__burger span:first-child{top:17px}
+  .hd__burger span:last-child {top:26px}
   .hd.is-menu .hd__burger span:first-child{transform:translateY(4.5px) rotate(45deg)}
   .hd.is-menu .hd__burger span:last-child {transform:translateY(-4.5px) rotate(-45deg)}
 
