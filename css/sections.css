@@ -6,7 +6,11 @@
    ══════════════════════════════════════════════════════════════ */
 
 html{font-size:1.05vw}
-@media (max-width:900px){ html{font-size:2.6vw} }
+/* Sul telefono il rem segue ancora la larghezza, ma dentro un tetto e
+   un pavimento (2026-09-25): a 390px vale come prima, e un Android da
+   360px o un iPhone Pro Max da 430px non rimpiccioliscono o gonfiano
+   tutto ciò che non ha già una misura sua. */
+@media (max-width:900px){ html{font-size:clamp(9.6px, 2.6vw, 11px)} }
 
 /* La pagina è trasparente e non cattura i click, tranne dove serve */
 #page{position:relative;z-index:1;pointer-events:none}
@@ -754,6 +758,21 @@ html{font-size:1.05vw}
     flex-direction:column;gap:8px;padding-right:0;
     padding-bottom:calc(72px + env(safe-area-inset-bottom));
   }
+}
+
+/* ── Telefono: rifinitura (2026-09-25) ────────────────────────
+   Nessun testo sotto i 12px: le micro-etichette erano tarate in cqw e
+   rem sul desktop, e a 360px scendevano fino a 7px. */
+@media (max-width:900px){
+  #page .lbl{font-size:12px}
+  .case__n{font-size:12px}
+  .todo, .case--vuota .case__posto .todo{font-size:12px}
+  .corner .lbl{font-size:11px}
+  .btn-accent{font-size:14px}
+  /* Safari: 100vh è l'altezza con la barra degli indirizzi NASCOSTA, e lo
+     stage fisso è alto così. Con la barra visibile il fondo dello stage
+     sta sotto la barra: lockup e angolo si alzano della differenza. */
+  .lockup, .corner{margin-bottom:calc(100lvh - 100svh)}
 }
 
 @media (prefers-reduced-motion:reduce){
