@@ -1035,14 +1035,16 @@ window.SEQ = (function(){
     });
 
     /* ── gli attraversamenti (quinta versione, committente 2026-09-25) ──
-       Il mattone scende ALLA STESSA VELOCITÀ con cui sale il testo, in
-       verso opposto: ogni pixel di scroll lo porta un pixel più giù. Esce
+       Il mattone scende a META' della velocità con cui sale il testo, in
+       verso opposto: ogni pixel di scroll lo porta mezzo pixel più giù
+       (1:1 era troppo veloce, fermo sembrava sospeso — 2026-09-25). Esce
        sotto e rientra da sopra (la y è presa modulo schermo + mattone,
        il salto cade a mattone fuori schermo), e la corsa è contata
        all'indietro dallo schianto: quando il pallino è su GRAVITA' si
        trova esattamente nel punto della rottura, quante schermate ci
        siano prima. Compare la prima volta che entra da sopra dopo che la
-       01 è salita al 60%, così non spunta a metà schermo.
+       01 è entrata nello schermo: entra sempre da sopra, mai a metà
+       schermo, e a mezza velocità non salta la 01 e la 02.
        Lo scroll che lo guida è ammorbidito (quickTo, un terzo di
        secondo): non è agganciato al pixel del testo, quindi su Safari
        non trema. Dopo lo schianto resta sul pavimento rotto, e Perché
@@ -1055,7 +1057,8 @@ window.SEQ = (function(){
        mattone occupa il 70-90% della sua altezza e le crepe arrivano al
        fondo. Il fondo del riquadro sta STACCO px sopra il nero: un filo di
        cemento fra le crepe e Perché Salzillo (alzato il 2026-09-25). */
-    const STACCO = 64;
+    const STACCO = 100;
+    const PASSO = .5;
     const yRompe = ()=> perche
       ? perche.getBoundingClientRect().top + scrollY - quandoRompe() - H() - STACCO
       : fondo.clientHeight - H();
@@ -1065,13 +1068,14 @@ window.SEQ = (function(){
     const disegna = ()=>{
       const G = giro(), sR = quandoRompe(), yR = yRompe();
       const s = stato.s;
-      /* la prima entrata da sopra dopo che la 01 è al 60% */
-      const via = s01 ? s01.getBoundingClientRect().top + scrollY - innerHeight * .6 : 0;
-      const entra = sR - (yR + H()) - Math.max(0, Math.floor((sR - (yR + H()) - via) / G)) * G;
+      /* la prima entrata da sopra dopo che la 01 è entrata */
+      const via = s01 ? s01.getBoundingClientRect().top + scrollY - innerHeight : 0;
+      const D = (yR + H()) / PASSO, P = G / PASSO;
+      const entra = sR - D - Math.max(0, Math.floor((sR - D - via) / P)) * P;
       let y, vis;
       if(s >= sR){ y = yR; vis = true; }                       /* sul pavimento rotto */
       else {
-        const grezza = yR - (sR - s);                           /* 1:1 con lo scroll */
+        const grezza = yR - PASSO * (sR - s);                   /* mezzo pixel per pixel */
         y = ((grezza + H()) % G + G) % G - H();
         vis = s >= entra;
       }
