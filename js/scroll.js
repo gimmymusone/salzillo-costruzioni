@@ -989,9 +989,9 @@ window.SEQ = (function(){
      committente: seguire i riquadri a ogni scroll lo faceva traballare
      (Safari muove la pagina prima che il JS sposti il livello fisso).
      Ora non è mai agganciato al pixel del testo:
-     - in 01, 02 e 03 attraversa tutto lo schermo dall'alto in basso e
-       rientra da sopra per la sezione dopo, come sul desktop (vedi
-       «gli attraversamenti» più sotto);
+     - scende alla stessa velocità con cui sale il testo, attraversa lo
+       schermo e rientra da sopra, come sul desktop (vedi «gli
+       attraversamenti» più sotto);
      - resta sospeso (fotogramma U0) finché non arriva il titolo della
        piuma; poi cade mentre il pallino scende TEMPO / E, e rompe il
        pavimento esattamente quando il pallino arriva su GRAVITA', che a
@@ -1034,63 +1034,64 @@ window.SEQ = (function(){
       onRefresh:s => BRICK.draw(fot(s.progress), 1)
     });
 
-    /* ── gli attraversamenti (quarta versione, committente 2026-09-25) ──
-       Come sul desktop: in 01, 02 e 03 il mattone attraversa tutto lo
-       schermo dall'alto in basso, esce sotto e rientra da sopra per la
-       sezione dopo; nella piuma entra un'ultima volta e si ferma sul bordo
-       di Perché Salzillo, dove rompe il pavimento sul pallino di GRAVITA'.
-       Un'unica coordinata continua `v` fa tutta la corsa: ogni
-       attraversamento vale GIRO (schermo + mattone), e la y è v modulo
-       GIRO — il salto da sotto a sopra cade a mattone fuori schermo. `v`
-       insegue lo scroll ammorbidita (quickTo, come lo scrub di prima): non
-       è agganciata al pixel del testo, quindi su Safari non trema. Quattro
-       tween separati sullo stesso `y` si sarebbero pestati tornando su. */
+    /* ── gli attraversamenti (quinta versione, committente 2026-09-25) ──
+       Il mattone scende a META' della velocità con cui sale il testo, in
+       verso opposto: ogni pixel di scroll lo porta mezzo pixel più giù
+       (1:1 era troppo veloce, fermo sembrava sospeso — 2026-09-25). Esce
+       sotto e rientra da sopra (la y è presa modulo schermo + mattone,
+       il salto cade a mattone fuori schermo), e la corsa è contata
+       all'indietro dallo schianto: quando il pallino è su GRAVITA' si
+       trova esattamente nel punto della rottura, quante schermate ci
+       siano prima. Entra da sopra proprio mentre la 01 entra da sotto:
+       la velocità è ritoccata di pochi punti attorno a PASSO perché fra
+       quel momento e lo schianto ci stia un numero intero di giri. Con
+       un passo fisso l'entrata cadeva a caso e, su certi schermi, il
+       mattone saltava la 01 e la 02 (committente, 2026-09-25).
+       Lo scroll che lo guida è ammorbidito (quickTo, un terzo di
+       secondo): non è agganciato al pixel del testo, quindi su Safari
+       non trema. Dopo lo schianto resta sul pavimento rotto, e Perché
+       Salzillo sale e lo copre. */
     const perche = document.querySelector('#s-perche');
+    const s01 = document.querySelector('#s01-arte');
     const H = ()=> el.offsetHeight;
     const quandoRompe = ()=> st.start + ROMPE * (st.end - st.start);
-    /* dove sta il riquadro allo schianto: nel fotogramma dell'impatto il
+    /* Dove sta il riquadro allo schianto: nel fotogramma dell'impatto il
        mattone occupa il 70-90% della sua altezza e le crepe arrivano al
-       fondo; il riquadro finisce poco sopra il nero, così il mattone è
-       intero e sotto le crepe comincia Perché Salzillo */
+       fondo. Il fondo del riquadro sta STACCO px sopra il nero: un filo di
+       cemento fra le crepe e Perché Salzillo (alzato il 2026-09-25). */
+    const STACCO = 100;
+    const PASSO = .5;
     const yRompe = ()=> perche
-      ? perche.getBoundingClientRect().top + scrollY - quandoRompe() - H() - 16
+      ? perche.getBoundingClientRect().top + scrollY - quandoRompe() - H() - STACCO
       : fondo.clientHeight - H();
-    /* dove comincia ogni attraversamento: quando la sezione è salita al
-       60% dello schermo; l'ultimo tratto finisce allo schianto */
-    const TAPPE = ['#s01-arte', '#s02-struttura', '#s03-finiture', '#s-piuma']
-      .map(q => document.querySelector(q)).filter(Boolean);
-    const cima = e => e.getBoundingClientRect().top + scrollY;
     const giro = ()=> fondo.clientHeight + H();
-    const ULTIMO = TAPPE.length - 1;
 
-    /* v voluta per questa posizione di scroll */
-    const vVoluta = ()=>{
-      const y = scrollY, G = giro();
-      const b = TAPPE.map(t => cima(t) - innerHeight * .6).concat(quandoRompe());
-      if(y <= b[0]) return 0;
-      for(let i = 0; i < TAPPE.length; i++){
-        if(y < b[i+1]){
-          const corsa = i < ULTIMO ? G : yRompe() + H();
-          return i * G + corsa * (y - b[i]) / (b[i+1] - b[i]);
-        }
-      }
-      return ULTIMO * G + yRompe() + H();
-    };
-    /* v → y: negli attraversamenti a modulo, nell'ultimo tratto diretta */
-    const stato = {v:0};
+    const stato = {s:scrollY};
     const disegna = ()=>{
-      const G = giro(), v = stato.v;
-      const y = v >= ULTIMO * G ? v - ULTIMO * G - H() : (v % G) - H();
-      gsap.set(el, {y, autoAlpha: v > .5 ? 1 : 0});
+      const G = giro(), sR = quandoRompe(), yR = yRompe();
+      const s = stato.s;
+      /* entra (a y = -H) quando la cima della 01 tocca il fondo dello schermo */
+      const entra = s01 ? s01.getBoundingClientRect().top + scrollY - innerHeight : 0;
+      const corsa = Math.max(1, sR - entra);
+      const giri = Math.max(0, Math.round((PASSO * corsa - (yR + H())) / G));
+      const passo = (yR + H() + giri * G) / corsa;
+      let y, vis;
+      if(s >= sR){ y = yR; vis = true; }                       /* sul pavimento rotto */
+      else {
+        const grezza = yR - passo * (sR - s);                   /* circa mezzo pixel per pixel */
+        y = ((grezza + H()) % G + G) % G - H();
+        vis = s >= entra;
+      }
+      gsap.set(el, {y, autoAlpha: vis ? 1 : 0});
     };
-    const insegui = gsap.quickTo(stato, 'v', {duration:.8, ease:'power3', onUpdate:disegna});
+    const insegui = gsap.quickTo(stato, 's', {duration:.35, ease:'power2', onUpdate:disegna});
     const aggiorna = salta =>{
-      const v = vVoluta();
+      const s = scrollY;
       /* un salto lungo (menu, ricarica a metà pagina) non fa volare il
-         mattone attraverso tre schermate: si posa direttamente */
-      if(salta === true || Math.abs(v - stato.v) > giro() * 1.5){
-        stato.v = v; insegui(v, v); disegna();
-      } else insegui(v);
+         mattone attraverso più schermate: si posa direttamente */
+      if(salta === true || Math.abs(s - stato.s) > innerHeight * 1.5){
+        stato.s = s; insegui(s, s); disegna();
+      } else insegui(s);
     };
     ScrollTrigger.create({
       trigger:'#s01-arte', start:'top bottom', end:'max',
