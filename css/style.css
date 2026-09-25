@@ -152,6 +152,16 @@
    sul corpo scende a 14,9cqw e il margine cresce ancora. */
 @media (max-width:900px){
   :root{ --display-size:min(18.9vh, 14.9cqw); --hero-top:21% }
+  /* Sul telefono (2026-09-25, «si vede molto sbiadito»): i grigi del
+     cemento scendono di un tono, così titoli, etichette e testi reggono
+     anche all'aperto e su schermi meno luminosi; e il fondo della torre
+     perde il velo di contrasto che lo appiattiva. Sulla notte le
+     etichette salgono un poco. */
+  :root{
+    --ink-l:#575353; --ink2-l:#262424; --mute-l:#6F6B6B;
+    --mute-d:#8C8989;
+    --fondo-luce:1.14; --fondo-contrasto:1.04;
+  }
   [data-copia="2"]{--display-size:min(18.9vh, 10.3cqw)}
   [data-copia="3"]{--display-size:min(18.9vh, 10.4cqw)}
 }

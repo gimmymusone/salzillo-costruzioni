@@ -143,7 +143,8 @@ window.DIAGRAMS = (function(){
     let w=0, h=0, shapes=[];
 
     function resize(){
-      const dpr = Math.min(devicePixelRatio || 1, 2);
+      /* fino a 3 sul telefono (iPhone), come i canvas di js/scroll.js */
+      const dpr = Math.min(devicePixelRatio || 1, matchMedia('(max-width: 900px)').matches ? 3 : 2);
       w = canvas.clientWidth; h = canvas.clientHeight;
       if(!w || !h) return;
       canvas.width  = Math.round(w*dpr);

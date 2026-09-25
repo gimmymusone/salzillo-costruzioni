@@ -43,6 +43,7 @@ window.CODA = (function(){
       if(!url) return;
       attivi++;
       const e  = cache.get(url);
+      e.partito = true;
       const im = new Image();
       const fine = ok=>{
         attivi--;
@@ -56,14 +57,23 @@ window.CODA = (function(){
     }
   }
 
+  /* prio < 0: URGENTE, passa davanti a tutta la coda (anche a un file
+     già in coda ma non ancora partito). Serve al fotogramma del mattone
+     che si vede per primo sul telefono: in fondo alla coda arrivava
+     dopo tutta la torre, e al primo scroll si vedeva solo l'ombra. */
   function prendi(url, prio, cb){
     let e = cache.get(url);
     if(e){
       if(e.fatto) cb(e.im); else e.cbs.push(cb);
+      if(!e.fatto && prio < 0){
+        file.forEach(f=>{ const k = f.indexOf(url); if(k > -1) f.splice(k, 1); });
+        if(!e.partito){ file[0].unshift(url); pompa(); }
+      }
       return;
     }
     cache.set(url, e = {im:null, fatto:false, ok:false, cbs:[cb]});
-    file[Math.min(Math.max(prio|0, 0), file.length - 1)].push(url);
+    if(prio < 0) file[0].unshift(url);
+    else file[Math.min(Math.max(prio|0, 0), file.length - 1)].push(url);
     pompa();
   }
 
@@ -83,6 +93,13 @@ window.CODA = (function(){
   return { prendi, ordine };
 })();
 
+/* Pixel per punto dei canvas. Sul desktop resta il tetto di 2; sul
+   telefono si va fino a 3 (iPhone): a 2 il canvas veniva poi ingrandito
+   dal browser di 1,5 volte e tutto risultava sfocato (committente,
+   2026-09-25: «si vede molto sfocato»). */
+const densita = ()=> Math.min(devicePixelRatio || 1,
+  matchMedia('(max-width: 900px)').matches ? 3 : 2);
+
 window.FRAMESEQ = function(canvas, opts){
   const n    = opts.count;
   const path = opts.path;
@@ -90,13 +107,22 @@ window.FRAMESEQ = function(canvas, opts){
   const img  = new Array(n).fill(null);
   let drawn  = -1, avviato = false;
 
-  function preload(){
+  /* filtro: quali fotogrammi servono davvero (sul telefono il mattone
+     ne usa uno su due, e solo dal momento in cui è intero) */
+  const arrivato = i => im=>{
+    if(!im) return;
+    img[i] = im;
+    drawn = -1;      /* un vicino più preciso può essere appena arrivato */
+  };
+  function preload(filtro){
     if(avviato) return; avviato = true;
-    CODA.ordine(n).forEach(i=>CODA.prendi(path(i), 1, im=>{
-      if(!im) return;
-      img[i] = im;
-      drawn = -1;      /* un vicino più preciso può essere appena arrivato */
-    }));
+    CODA.ordine(n).filter(i => !filtro || filtro(i))
+      .forEach(i=>CODA.prendi(path(i), 1, arrivato(i)));
+  }
+  /* un fotogramma davanti a tutta la coda */
+  function anticipa(p){
+    const i = Math.max(0, Math.min(n-1, Math.round(p * (n-1))));
+    CODA.prendi(path(i), -1, arrivato(i));
   }
   function vicino(i){
     if(img[i]) return img[i];
@@ -113,7 +139,7 @@ window.FRAMESEQ = function(canvas, opts){
     if(!force && i === drawn) return;
     const im = vicino(i);
     if(!im) return;
-    const dpr = Math.min(devicePixelRatio||1, 2);
+    const dpr = densita();
     const cw = canvas.clientWidth, ch = canvas.clientHeight;
     if(!cw || !ch) return;
     if(canvas.width !== Math.round(cw*dpr) || canvas.height !== Math.round(ch*dpr)){
@@ -127,7 +153,7 @@ window.FRAMESEQ = function(canvas, opts){
     ctx.drawImage(im, (cw-im.width*s)/2, (ch-im.height*s)/2, im.width*s, im.height*s);
     drawn = i;
   }
-  return { preload, draw, get pronto(){ return !!img[0]; } };
+  return { preload, anticipa, draw, get pronto(){ return !!img[0]; } };
 };
 
 window.SEQ = (function(){
@@ -192,7 +218,13 @@ window.SEQ = (function(){
     };
     /* tutta la torre va in coda SUBITO, prima che il mattone
        (priorità 1) trovi slot liberi mentre arriva il primo frame */
-    const ordine = CODA.ordine(FRAME_COUNT).filter(i=>i);
+    /* Sul telefono un fotogramma su due (e la sua silhouette): metà dei
+       file e dei byte, e sulla corsa corta del telefono lo scrub resta
+       fluido — 2026-09-25, «aumenta anche la velocità». L'ultimo c'è
+       sempre, è quello su cui la sequenza si ferma. */
+    const meta = stretto.matches;
+    const serve = i => !meta || i % 2 === 0 || i === FRAME_COUNT - 1;
+    const ordine = CODA.ordine(FRAME_COUNT).filter(i => i && serve(i));
     /* +1: la silhouette del primo fotogramma. Senza, sul telefono (rete
        più lenta) l'intro partiva col titolo DAVANTI al palazzo e solo
        dopo un bel po' gli passava dietro (committente, 2026-09-25). */
@@ -298,7 +330,7 @@ window.SEQ = (function(){
     state.bucoFirma = firma;
 
     const im = images[j];
-    const dpr = Math.min(devicePixelRatio||1, 2);
+    const dpr = densita();
     const cw = canvas.clientWidth, ch = canvas.clientHeight;
     if(canvas.width !== Math.round(cw*dpr) || canvas.height !== Math.round(ch*dpr)){
       canvas.width = Math.round(cw*dpr); canvas.height = Math.round(ch*dpr);
@@ -606,9 +638,13 @@ window.SEQ = (function(){
      Serve un punto solo e uguale per tutti — la sezione entra per tre
      quarti — e le tappe che non hanno una sezione propria (quella
      dentro le card) sul mobile non esistono. */
+  /* data-flip-soglia sposta quel punto per una sezione sola (frazione
+     di schermo): serve alla 01 sul telefono, il cui cemento deve
+     arrivare mentre la torre sfuma, ben prima del 30%. */
   function threshold(s){
+    const f = s.el ? parseFloat(s.el.dataset.flipSoglia) || .3 : .3;
     return s.el
-      ? s.el.getBoundingClientRect().top + scrollY - innerHeight * .3
+      ? s.el.getBoundingClientRect().top + scrollY - innerHeight * f
       : Infinity;
   }
 
@@ -968,7 +1004,14 @@ window.SEQ = (function(){
     const fondo = document.querySelector('#bg');
     if(!window.BRICK || !el || !titolo || !fondo) return;
     if(!el.querySelector('canvas')) BRICK.monta(el, 0, 1);
-    BRICK.preload(true);
+    const U0 = .27, U_IMPATTO = .62, CADE = .55, ROMPE = .75 / .875;
+    /* Prima di tutto il fotogramma sospeso, davanti alla torre: è il
+       primo che si vede, e in coda arrivava dopo tutto il resto (al
+       primo scroll c'era solo l'ombra). Poi solo quelli che servono:
+       da U0 in poi, uno su due — un terzo dei file del bake. */
+    BRICK.anticipa(U0, true);
+    const primo = Math.round(U0 * (BRICK.N - 1));
+    BRICK.preload(true, i => i >= primo && (i - primo) % 2 === 0);
     BRICK.opacita(1);
 
     /* quasi al centro: a metà del fondo fisso, che è alto quanto lo
@@ -976,8 +1019,10 @@ window.SEQ = (function(){
     const centro = ()=> Math.round((fondo.clientHeight - el.offsetHeight) / 2);
     const fuori  = ()=> -el.offsetHeight;
     gsap.set(el, {y:fuori(), autoAlpha:0});
+    /* scende mentre sale la 01, quando la torre se n'è appena andata:
+       passa dietro anche al testo della 01 (committente, 2026-09-25) */
     ScrollTrigger.create({
-      trigger:'#s02-struttura', start:'top 65%', end:'max',
+      trigger:'#s01-arte', start:'top 50%', end:'max',
       onToggle(self){
         gsap.to(el, self.isActive
           ? {y:centro(), autoAlpha:1, duration:.9, ease:'power3.out', overwrite:true}
@@ -991,7 +1036,6 @@ window.SEQ = (function(){
        telefono (data-ignite-*-m, js/type.js): il pallino è sull'ultima
        riga da 3/4 della sua corsa in poi, e la corsa si ferma a 3,5/4
        (data-ignite-fine="ultima"), cioè al 75/87,5 = 85,7% del trigger. */
-    const U0 = .27, U_IMPATTO = .62, CADE = .55, ROMPE = .75 / .875;
     const fot = q => q < CADE  ? U0
                    : q < ROMPE ? U0 + (U_IMPATTO - U0) * (q - CADE) / (ROMPE - CADE)
                    : U_IMPATTO + (1 - U_IMPATTO) * Math.min(1, (q - ROMPE) / (1 - ROMPE));
@@ -1197,9 +1241,11 @@ window.SEQ = (function(){
        Niente mattone in volo né apertura delle card: le sezioni sono a
        contenuto, e --t si commuta a gradini all'ingresso di ognuna. */
     mm.add('(max-width: 900px) and (prefers-reduced-motion: no-preference)', ()=>{
+      /* la discesa finisce mentre sale la 01, prima del suo testo: da lì
+         la torre sfuma e il mattone scende al suo posto (2026-09-25) */
       ScrollTrigger.create({
         trigger:'#hero-spacer', start:'top top',
-        endTrigger:'#s01-arte', end:FINE_CON_CODA,
+        endTrigger:'#s01-arte', end:'top 75%',
         onUpdate(self){ state.target = self.progress * (FRAME_COUNT-1); tick(); }
       });
       gsap.fromTo(['.hero','.lockup','.corner','.grid'], {autoAlpha:1, y:0}, {
@@ -1224,11 +1270,11 @@ window.SEQ = (function(){
          hero se ne vanno appena entra la 02, e resta il cemento. */
       gsap.fromTo(['#seq','#seqFront','.bg__scrim'], {autoAlpha:1}, {
         autoAlpha:0, ease:'none', immediateRender:false,
-        /* se ne va mentre finisce la 01, così quando entra la 02 è già
-           cemento pieno (committente, 2026-09-25: la torre si vedeva
-           ancora dietro l'inizio della 02). La sequenza è già ferma
-           sull'ultimo fotogramma a 'bottom 130%' (FINE_CON_CODA). */
-        scrollTrigger:{ trigger:'#s01-arte', start:'bottom 125%', end:'bottom 100%', scrub:true }
+        /* Se ne va appena la discesa è finita, mentre la 01 sale e PRIMA
+           che arrivi il suo testo: sfumando a cavallo fra 01 e 02 si
+           vedeva a lampi dietro le scritte scorrendo avanti e indietro
+           (committente, registrazione del 2026-09-25). */
+        scrollTrigger:{ trigger:'#s01-arte', start:'top 75%', end:'top 45%', scrub:true }
       });
     });
 
@@ -1244,6 +1290,11 @@ window.SEQ = (function(){
   }
 
   function init(){
+    /* Sul telefono la torre se ne va mentre sale la 01 (initScroll,
+       'top 75%' → 'top 45%'): il cemento arriva a metà di quella
+       finestra, o sotto la torre che sfuma si vedeva la notte. */
+    const s01 = document.querySelector('#s01-arte');
+    if(s01) s01.dataset.flipSoglia = '.6';
     startLoading();
     mountDiagrams();
     if(window.gsap && window.ScrollTrigger){

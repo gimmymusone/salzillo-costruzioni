@@ -645,10 +645,9 @@ html{font-size:1.05vw}
    piuma ha il mattone schiantato sopra il titolo. */
 @media (max-width:900px){
   .chapter .sticky, #s-piuma .sticky{padding:56px 16px}
-  #s01-arte .sticky{
-    min-height:100svh;justify-content:flex-end;padding-bottom:48px;
-    background:linear-gradient(to bottom, transparent 35%, var(--bg) 72%);
-  }
+  /* Niente velo: la torre se ne va prima che arrivi il testo, e al suo
+     posto c'è il mattone, che passa dietro le scritte (2026-09-25) */
+  #s01-arte .sticky{min-height:100svh;justify-content:flex-end;padding-bottom:48px}
   #s01-arte .sec-display, #s02-struttura .sec-display, #s03-finiture .sec-display{
     font-size:min(8.6vw, 3.4rem);line-height:.86;margin-bottom:0;
   }
