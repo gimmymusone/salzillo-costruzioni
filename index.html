@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=TASA+Orbiter:wght@400..800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css?v=30">
-<link rel="stylesheet" href="css/sections.css?v=78">
+<link rel="stylesheet" href="css/sections.css?v=79">
 </head>
 <body>
 
@@ -485,18 +485,22 @@
         <article class="case" data-nome="Via Torre">
           <img src="assets/cantieri/via-torre/01.jpg" alt="Cantiere Via Torre" loading="lazy">
           <span class="case__n">[ 1 ]</span>
+          <a class="case__apri" href="#progetto/via-torre" data-progetto="via-torre" aria-label="Apri il progetto Via Torre"><span>Apri progetto &rarr;</span></a>
         </article>
         <article class="case" data-nome="Villette Portico">
           <img src="assets/cantieri/villette-portico/01.jpg" alt="Villette con portico" loading="lazy">
           <span class="case__n">[ 2 ]</span>
+          <a class="case__apri" href="#progetto/villette-portico" data-progetto="villette-portico" aria-label="Apri il progetto Villette Portico"><span>Apri progetto &rarr;</span></a>
         </article>
         <article class="case" data-nome="Residence Curti">
           <img src="assets/cantieri/residence-curti/01.jpg" alt="Residence Curti" loading="lazy">
           <span class="case__n">[ 3 ]</span>
+          <a class="case__apri" href="#progetto/residence-curti" data-progetto="residence-curti" aria-label="Apri il progetto Residence Curti"><span>Apri progetto &rarr;</span></a>
         </article>
         <article class="case" data-nome="Via Gorizia">
           <img src="assets/cantieri/via-gorizia/01.jpg" alt="Cantiere Via Gorizia, Mondragone" loading="lazy">
           <span class="case__n">[ 4 ]</span>
+          <a class="case__apri" href="#progetto/via-gorizia" data-progetto="via-gorizia" aria-label="Apri il progetto Via Gorizia"><span>Apri progetto &rarr;</span></a>
         </article>
       </div>
       <p class="galleria__cat"><span>CANTIERI/</span>NUOVE COSTRUZIONI</p>
@@ -516,14 +520,17 @@
         <article class="case case--vuota" data-nome="[DA CONFERMARE]">
           <div class="case__posto"><span class="todo">[DA CONFERMARE: foto]</span></div>
           <span class="case__n">[ 1 ]</span>
+          <a class="case__apri" href="#progetto/ristrutturazione-1" data-progetto="ristrutturazione-1" aria-label="Apri la ristrutturazione 1"><span>Apri progetto &rarr;</span></a>
         </article>
         <article class="case case--vuota" data-nome="[DA CONFERMARE]">
           <div class="case__posto"><span class="todo">[DA CONFERMARE: foto]</span></div>
           <span class="case__n">[ 2 ]</span>
+          <a class="case__apri" href="#progetto/ristrutturazione-2" data-progetto="ristrutturazione-2" aria-label="Apri la ristrutturazione 2"><span>Apri progetto &rarr;</span></a>
         </article>
         <article class="case case--vuota" data-nome="[DA CONFERMARE]">
           <div class="case__posto"><span class="todo">[DA CONFERMARE: foto]</span></div>
           <span class="case__n">[ 3 ]</span>
+          <a class="case__apri" href="#progetto/ristrutturazione-3" data-progetto="ristrutturazione-3" aria-label="Apri la ristrutturazione 3"><span>Apri progetto &rarr;</span></a>
         </article>
       </div>
       <p class="galleria__cat"><span>CANTIERI/</span>RISTRUTTURAZIONI</p>
@@ -713,6 +720,24 @@
 
 </main>
 
+<!-- La scheda di un progetto (js/progetti.js): un livello sopra il
+     sito, che sotto resta fermo dov'era (committente, 2026-09-25). -->
+<div class="scheda" id="scheda" role="dialog" aria-modal="true" aria-labelledby="schedaT" hidden>
+  <div class="scheda__barra">
+    <button class="scheda__indietro" type="button"><span aria-hidden="true">&larr;</span> Torna al sito</button>
+  </div>
+  <div class="scheda__corpo">
+    <p class="scheda__lbl"><span>CANTIERI/</span><span class="scheda__cat"></span></p>
+    <h2 class="scheda__t" id="schedaT"></h2>
+    <dl class="scheda__dati">
+      <div><dt class="lbl">Tipo di progetto</dt><dd data-campo="tipo"></dd></div>
+      <div><dt class="lbl">Località</dt><dd data-campo="luogo"></dd></div>
+      <div><dt class="lbl">Stato di avanzamento</dt><dd data-campo="stato"></dd></div>
+    </dl>
+    <div class="scheda__foto"></div>
+  </div>
+</div>
+
 <!-- SplitText non serve più: dallo step 02 la rivelazione del testo
      lavora per righe e per fronti, non per parole. -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js"></script>
@@ -730,5 +755,6 @@
   document.querySelectorAll('a[data-vuoto]').forEach(a=>a.addEventListener('click', e=>e.preventDefault()));
 </script>
 <script src="js/pagine.js?v=5"></script>
+<script src="js/progetti.js?v=1"></script>
 </body>
 </html>
