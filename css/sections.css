@@ -621,6 +621,46 @@ html{font-size:1.05vw}
   .contact__cols{grid-template-columns:1fr}
 }
 
+/* ── Telefono: i capitoli 01–03 e la piuma (2026-09-25) ─────
+   Una colonna sola e un ritmo solo: etichetta, titolo, paragrafo, con
+   lo stesso margine di 16px ai lati. La 01 è una schermata intera
+   posata sull'ultimo fotogramma della torre, col testo in basso su un
+   velo di cemento; la 02 e la 03 hanno il mattone sopra il testo; la
+   piuma ha il mattone schiantato sopra il titolo. */
+@media (max-width:900px){
+  .chapter .sticky, #s-piuma .sticky{padding:56px 16px}
+  #s01-arte .sticky{
+    min-height:100svh;justify-content:flex-end;padding-bottom:48px;
+    background:linear-gradient(to bottom, transparent 35%, var(--bg) 72%);
+  }
+  #s01-arte .sec-display, #s02-struttura .sec-display, #s03-finiture .sec-display{
+    font-size:min(8.6vw, 3.4rem);line-height:.86;margin-bottom:0;
+  }
+  .sec-label{font-size:11px;margin-bottom:14px}
+  .chapter--nota-alta .sec-body, #s02-struttura .sec-body, #s03-finiture .sec-body{
+    font-size:16px;line-height:1.5;font-weight:600;margin-top:18px;
+  }
+  #s02-struttura .duo__para, #s03-finiture .duo__para{margin-top:0}
+  .chapter--duo .sticky{min-height:0;row-gap:8px}
+  /* il riquadro del mattone va da bordo a bordo e sfuma in alto e in
+     basso: il fondo del render non coincide al pixel col cemento */
+  .chapter--duo .duo__oggetto, #s-piuma .piuma__oggetto{
+    height:min(40svh, 300px);margin:0 -16px;
+    -webkit-mask-image:linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
+    mask-image:linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
+  }
+  #s02-struttura, #s03-finiture{border-top:1px solid var(--rule)}
+
+  #s-piuma .sticky{min-height:0;justify-content:flex-start}
+  #s-piuma .piuma__oggetto{position:relative;width:auto}
+  #s-piuma .sec-display--st{font-size:min(15vw, 4.2rem);line-height:.8;margin:8px 0 0}
+  /* il faretto resta, ma le righe spente restano leggibili */
+  .ignite .line{
+    color:color-mix(in srgb, var(--ignite-on) calc(max(var(--cur), .45) * 100%), var(--ignite-off));
+  }
+  .ignite__dot{left:-12px}
+}
+
 @media (prefers-reduced-motion:reduce){
   .cases-track,.storia-track{transform:none !important}
 }

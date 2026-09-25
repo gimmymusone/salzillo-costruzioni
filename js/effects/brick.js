@@ -61,7 +61,25 @@ window.BRICK = (function(){
     return s;
   }
 
-  function preload(){ slot.forEach(s=>{ s.chiaro.preload(); s.scuro.preload(); }); }
+  /* soloScuro: sul telefono le tre sezioni del mattone sono sempre chiare
+     e la pelle chiara non si vede mai — inutile scaricarla (2026-09-25) */
+  function preload(soloScuro){
+    slot.forEach(s=>{ if(!soloScuro) s.chiaro.preload(); s.scuro.preload(); });
+  }
+
+  /* Un fotogramma per UNO slot, fuori dall'arco globale: sul telefono
+     ogni sezione scrubba il suo tratto della caduta (js/scroll.js →
+     mattoneTelefono). */
+  function drawSlot(i, q, luce){
+    const s = slot[i];
+    if(!s) return;
+    s.ultimo = Math.max(0, Math.min(1, q));
+    s.ultimaLuce = luce;
+    s.chiaro.draw(s.ultimo);
+    s.scuro.draw(s.ultimo);
+    s.cvChiaro.style.opacity = 1 - luce;
+    s.cvScuro.style.opacity  = luce;
+  }
 
   /* p = progresso globale 0…1 dell'intero arco; luce = 0 notte, 1 cemento */
   function draw(p, luce){
@@ -103,6 +121,6 @@ window.BRICK = (function(){
   }
   addEventListener('resize', resize);
 
-  return {monta, preload, draw, opacita, resize, get slot(){ return slot; }, N};
+  return {monta, preload, draw, drawSlot, opacita, resize, get slot(){ return slot; }, N};
 
 })();

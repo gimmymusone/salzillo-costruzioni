@@ -30,6 +30,13 @@ window.TYPE = (function(){
      a farli salire più lenti e insieme al passaggio del mattone
      (js/scroll.js → initBrick, CENTRI). */
   function finestra(el, start, end){
+    /* Sul telefono (2026-09-25) ogni testo si rivela sulla SUA posizione
+       e in una finestra corta: le finestre del desktop sono tarate su
+       capitoli pinnati alti diversi schermi e su sezioni a pagina, e qui
+       i titoli finivano di comparire quando erano già in cima. */
+    if(matchMedia('(max-width: 900px)').matches){
+      return {trigger:el, start:'top 95%', end:'top 62%'};
+    }
     const riv = el.closest('[data-rivela]');
     if(riv){
       const [s, e] = riv.dataset.rivela.split('|');

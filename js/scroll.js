@@ -699,17 +699,26 @@ window.SEQ = (function(){
     /* #s-via non esiste più (tolta il 2026-09-23): il suo posto in
        pagina è ora il top di #s02-struttura, quindi le soglie restano
        le stesse e i due trigger cambiano solo nome. */
-    [['#s02-struttura','#s01-arte .sticky',     'top 160%','top 120%'],
-     ['#s03-finiture','#s02-struttura .sticky','top 220%','top 175%'],
-     ['#s-piuma',     '#s03-finiture .sticky', 'top 220%','top 175%'],
-     ['#s-storia',    '#s-vendita .vendita',   'top bottom','top 78%']]
-      .forEach(([entra, esce, start, end])=>{
-        if(!document.querySelector(esce) || !document.querySelector(entra)) return;
+    /* Le prime tre coppie solo sul desktop (2026-09-25): le soglie sono
+       tarate su capitoli alti 350–400vh, e sul telefono — dove i
+       capitoli sono alti quanto il loro testo — la sezione dopo arriva
+       al 160% dello schermo mentre la precedente è appena entrata, e il
+       testo spariva prima di essere letto. */
+    const congedi = [['#s-storia', '#s-vendita .vendita', 'top bottom','top 78%', 'all']]
+      .concat([['#s02-struttura','#s01-arte .sticky',     'top 160%','top 120%'],
+               ['#s03-finiture','#s02-struttura .sticky','top 220%','top 175%'],
+               ['#s-piuma',     '#s03-finiture .sticky', 'top 220%','top 175%']]
+               .map(c => c.concat('(min-width: 901px)')));
+    const mmCongedi = gsap.matchMedia();
+    congedi.forEach(([entra, esce, start, end, media])=>{
+      if(!document.querySelector(esce) || !document.querySelector(entra)) return;
+      mmCongedi.add(media, ()=>{
         gsap.to(esce, {
           autoAlpha:0, ease:'none', immediateRender:false,
           scrollTrigger:{trigger:entra, start, end, scrub:true}
         });
       });
+    });
 
     document.querySelectorAll('[data-flip]').forEach(sec=>{
       const to   = parseFloat(sec.dataset.flip);
@@ -905,14 +914,43 @@ window.SEQ = (function(){
         const el = document.querySelector(sel);
         if(el) BRICK.monta(el, 0, 1);
       });
-      BRICK.preload();
+      BRICK.preload(stretto.matches);
     }
-    const luce = parseFloat(getComputedStyle(root).getPropertyValue('--t')) || 0;
+    /* Dal 2026-09-24 la 02, la 03 e la piuma sono tutte chiare: il
+       mattone posato è sempre quello scuro su cemento. Prima si leggeva
+       --t all'avvio, che in cima alla pagina è notte, e sul telefono
+       compariva il mattone chiaro sul fondo chiaro. */
+    const luce = 1;
     /* i frame arrivano in differita: si ridipinge quando ci sono */
     const dipingi = ()=> BRICK.draw(1, luce);
     dipingi();
     setTimeout(dipingi, 400);
     setTimeout(dipingi, 1600);
+  }
+
+  /* ── il mattone sul telefono (2026-09-25) ─────────────────
+     Qui il mattone non vola sopra le sezioni: ognuno dei tre slot
+     scrubba il suo tratto della stessa caduta mentre la sua sezione
+     attraversa lo schermo. Nella 02 fluttua, nella 03 scende e si
+     posa, nella piuma si schianta e crepa il pavimento. I tratti
+     sono letti sui fotogrammi: 0,62 è l'appoggio (m_075). */
+  const TRATTI = [
+    ['#s02-struttura .duo__oggetto', .02, .40],
+    ['#s03-finiture .duo__oggetto',  .40, .62],
+    ['#s-piuma .piuma__oggetto',     .62, 1  ]
+  ];
+  function mattoneTelefono(){
+    if(!window.BRICK) return;
+    TRATTI.forEach(([sel, da, a], i)=>{
+      const el = document.querySelector(sel);
+      if(!el) return;
+      BRICK.drawSlot(i, da, 1);
+      ScrollTrigger.create({
+        trigger:el, start:'top 90%', end:'bottom 25%',
+        onUpdate(self){ BRICK.drawSlot(i, da + (a - da) * self.progress, 1); },
+        onRefresh(self){ BRICK.drawSlot(i, da + (a - da) * self.progress, 1); }
+      });
+    });
   }
 
   /* L'apertura guidata dallo scroll era stata tolta il 2026-09-23, con le
@@ -1118,6 +1156,7 @@ window.SEQ = (function(){
       applyTheme();
       DIA.forEach(d => d.draw(1, 0));
       posaMattone();
+      mattoneTelefono();
     });
 
     /* ── reduced-motion: tutto leggibile, niente scrub né pin ── */
