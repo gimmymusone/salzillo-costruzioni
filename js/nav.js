@@ -86,9 +86,28 @@ window.NAV = (function(){
     if(!href.startsWith('#') || href === '#') return;
     a.addEventListener('click', e=>{
       e.preventDefault();
+      menu(false);                    /* sul telefono il pannello si chiude */
       vaiA(href);
       a.blur();                       /* chiude il sottomenu tenuto dal focus */
     });
+  }
+
+  /* ── menu del telefono (2026-09-25) ──────────────────────
+     Sotto i 900px le voci stanno in un pannello a tutto schermo che
+     si apre col ☰. Mentre è aperto la pagina sotto non scorre. */
+  const hd = document.querySelector('.hd');
+  const burger = document.querySelector('.hd__burger');
+  function menu(apri){
+    if(!hd || !burger) return;
+    hd.classList.toggle('is-menu', apri);
+    document.body.classList.toggle('menu-aperto', apri);
+    burger.setAttribute('aria-expanded', apri);
+    burger.setAttribute('aria-label', apri ? 'Chiudi il menu' : 'Apri il menu');
+  }
+  if(burger){
+    burger.addEventListener('click', ()=> menu(!hd.classList.contains('is-menu')));
+    addEventListener('keydown', e=>{ if(e.key === 'Escape') menu(false); });
+    matchMedia('(min-width: 901px)').addEventListener('change', e=>{ if(e.matches) menu(false); });
   }
 
   function init(){

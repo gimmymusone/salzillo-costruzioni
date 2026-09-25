@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=TASA+Orbiter:wght@400..800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=25">
+<link rel="stylesheet" href="css/style.css?v=26">
 <link rel="stylesheet" href="css/sections.css?v=64">
 </head>
 <body>
@@ -162,7 +162,7 @@
          resta uno solo che scorre, e la voce accesa è quella della
          sezione in cui ti trovi (js/nav.js). Le opere hanno tre
          categorie, che si aprono passando sopra la voce. -->
-    <nav class="hd__center nav" aria-label="Sezioni del sito">
+    <nav class="hd__center nav" id="navMenu" aria-label="Sezioni del sito">
       <a class="nav__voce" href="#hero-spacer" data-sez="intro">
         <span class="lbl" data-copy="navCenter">Introduzione</span>
       </a>
@@ -192,6 +192,12 @@
       <span class="lbl" data-copy="navRight">IN VENDITA</span>
       <span class="icon-blocks"><i></i><i></i></span>
     </a>
+    <!-- Solo sul telefono: il menu si apre a tutto schermo da qui
+         (committente, 2026-09-25). Lo comanda js/nav.js. -->
+    <button class="hd__burger" type="button" aria-label="Apri il menu"
+            aria-expanded="false" aria-controls="navMenu">
+      <span></span><span></span>
+    </button>
   </header>
 
 <!-- ═══════════════ PAGINA CHE SCORRE ═══════════════ -->
@@ -717,7 +723,7 @@
 <script src="js/type.js?v=10"></script>
 <script src="js/scroll.js?v=45"></script>
 <script src="js/hero.js?v=13"></script>
-<script src="js/nav.js?v=4"></script>
+<script src="js/nav.js?v=5"></script>
 <script>
   /* link ancora da completare (WhatsApp, Instagram): non fanno nulla */
   document.querySelectorAll('a[data-vuoto]').forEach(a=>a.addEventListener('click', e=>e.preventDefault()));
