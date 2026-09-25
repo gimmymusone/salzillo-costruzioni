@@ -931,28 +931,52 @@ window.SEQ = (function(){
   }
 
   /* ── il mattone sul telefono (2026-09-25) ─────────────────
-     Qui il mattone non vola sopra le sezioni: ognuno dei tre slot
-     scrubba il suo tratto della stessa caduta mentre la sua sezione
-     attraversa lo schermo. Nella 02 fluttua, nella 03 scende e si
-     posa, nella piuma si schianta e crepa il pavimento. I tratti
-     sono letti sui fotogrammi: 0,62 è l'appoggio (m_075). */
-  const TRATTI = [
-    ['#s02-struttura .duo__oggetto', .02, .40],
-    ['#s03-finiture .duo__oggetto',  .40, .62],
-    ['#s-piuma .piuma__oggetto',     .62, 1  ]
-  ];
+     UN mattone solo, come sul desktop (committente: «sempre lo stesso
+     fino alla gravità, dietro le scritte, in maniera continua»). Sta nel
+     fondo fisso (.mattone-volo) e segue tre riquadri vuoti nelle sezioni:
+     - arriva con quello della 02, come se fosse posato lì;
+     - quando è al centro dello schermo si ferma lì, e 02 e 03 gli
+       scorrono SOPRA mentre scende piano nel bake;
+     - quando arriva il riquadro della piuma lo aggancia, si schianta
+       (0,62 = impatto, m_075) e le crepe si aprono mentre sale via con
+       la pagina, sotto GRAVITA'.
+     Tutto si legge dalle posizioni dei riquadri a ogni scroll: nessuna
+     misura in cache, quindi regge a resize e a font che arrivano tardi. */
   function mattoneTelefono(){
-    if(!window.BRICK) return;
-    TRATTI.forEach(([sel, da, a], i)=>{
-      const el = document.querySelector(sel);
-      if(!el) return;
-      BRICK.drawSlot(i, da, 1);
-      ScrollTrigger.create({
-        trigger:el, start:'top 90%', end:'bottom 25%',
-        onUpdate(self){ BRICK.drawSlot(i, da + (a - da) * self.progress, 1); },
-        onRefresh(self){ BRICK.drawSlot(i, da + (a - da) * self.progress, 1); }
-      });
+    const el = document.querySelector('.mattone-volo');
+    const riq = ['#s02-struttura .duo__oggetto', '#s03-finiture .duo__oggetto',
+                 '#s-piuma .piuma__oggetto'].map(q => document.querySelector(q));
+    if(!window.BRICK || !el || riq.some(r => !r)) return;
+    if(!el.querySelector('canvas')) BRICK.monta(el, 0, 1);
+    BRICK.preload(true);
+    BRICK.opacita(1);
+    const U0 = .27, U_IMPATTO = .62, SCHIANTO = .35;   /* schermi per aprire le crepe */
+    const aggiorna = ()=>{
+      const H = riq[0].offsetHeight;
+      if(el.offsetHeight !== H) el.style.height = H + 'px';
+      const c  = (innerHeight - H) / 2;
+      const r0 = riq[0].getBoundingClientRect().top;
+      const rP = riq[2].getBoundingClientRect().top;
+      const y  = r0 > c ? r0 : rP > c ? c : rP;
+      el.style.transform = `translateY(${y}px)`;
+      el.style.visibility = (y < innerHeight && y + H > 0) ? 'visible' : 'hidden';
+      /* il bake: in volo dall'arrivo nella 02 fin sulla piuma, poi lo
+         schianto; la curva del bake fa cadere il grosso alla fine */
+      const d0 = -innerHeight * .8, D = rP - r0, d = c - r0;
+      const p = rP > c
+        ? U0 + (U_IMPATTO - U0) * clamp01((d - d0) / (D - d0))
+        : U_IMPATTO + (1 - U_IMPATTO) * clamp01((c - rP) / (innerHeight * SCHIANTO));
+      BRICK.draw(p, 1);
+    };
+    ScrollTrigger.create({
+      trigger:'#s02-struttura', start:'top bottom',
+      endTrigger:'#s-piuma', end:'bottom top',
+      onUpdate:aggiorna, onRefresh:aggiorna, onToggle:aggiorna
     });
+    aggiorna();
+    /* i fotogrammi arrivano in differita: si ridipinge quando ci sono */
+    setTimeout(aggiorna, 600);
+    setTimeout(aggiorna, 2000);
   }
 
   /* L'apertura guidata dallo scroll era stata tolta il 2026-09-23, con le
@@ -1157,8 +1181,14 @@ window.SEQ = (function(){
       root.classList.add('is-stepped');
       applyTheme();
       DIA.forEach(d => d.draw(1, 0));
-      posaMattone();
       mattoneTelefono();
+      /* Da 02 in poi le sezioni sono trasparenti (il mattone passa sotto
+         le scritte): la torre, il suo primo piano e il velo scuro della
+         hero se ne vanno appena entra la 02, e resta il cemento. */
+      gsap.fromTo(['#seq','#seqFront','.bg__scrim'], {autoAlpha:1}, {
+        autoAlpha:0, ease:'none', immediateRender:false,
+        scrollTrigger:{ trigger:'#s02-struttura', start:'top bottom', end:'top 65%', scrub:true }
+      });
     });
 
     /* ── reduced-motion: tutto leggibile, niente scrub né pin ── */

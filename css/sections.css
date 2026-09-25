@@ -209,7 +209,19 @@ html{font-size:1.05vw}
    e lo sposta solo la y, quindi niente sticky da inseguire. Parte fuori
    schermo in alto; sul mobile non c'è (lì i mattoni sono posati). */
 .mattone-volo{will-change:transform}
-@media (max-width:900px){ .mattone-volo{display:none} }
+/* Sul telefono (2026-09-25) il mattone è di nuovo UNO, come sul
+   desktop: una fascia a tutta larghezza nel fondo fisso, dietro le
+   scritte di 02, 03 e piuma, che js/scroll.js (mattoneTelefono) aggancia
+   ai tre riquadri vuoti delle sezioni e tiene al centro dello schermo
+   mentre passa dall'uno all'altro. */
+@media (max-width:900px){
+  .mattone-volo{
+    width:100%;height:min(40svh, 300px);
+    -webkit-mask-image:linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
+    mask-image:linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
+    visibility:hidden;
+  }
+}
 /* default: oggetto a sinistra, testo a destra (sezione 4) */
 .chapter--duo .duo__oggetto{order:1}
 .chapter--duo .duo__testo  {order:2}
@@ -578,7 +590,7 @@ html{font-size:1.05vw}
      anche qui); dopo la 01 le sezioni hanno fondo pieno, così lo stage
      fisso non trapela più sotto il testo */
   #hero-spacer{height:220vh}
-  #s02-struttura,#s03-finiture,#s-piuma,#s-cases{background:var(--bg)}
+  #s-cases{background:var(--bg)}
   .chapter, .chapter--m{height:auto}
   .chapter .sticky, #s-cerniera .sticky, #s-cantieri .sticky,
   #s-ristrutturazioni .sticky,
@@ -653,7 +665,6 @@ html{font-size:1.05vw}
     -webkit-mask-image:linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
     mask-image:linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
   }
-  #s02-struttura, #s03-finiture{border-top:1px solid var(--rule)}
 
   #s-piuma .sticky{min-height:0;justify-content:flex-start}
   #s-piuma .piuma__oggetto{position:relative;width:auto}
@@ -878,4 +889,10 @@ html{font-size:1.05vw}
 .contact__foot .contact__firma:hover{color:var(--marchio-blu)}
 /* il piè di pagina lascia spazio al tasto, che altrimenti copre «© 2026» */
 .contact__foot{padding-right:4.6rem}
-@media (max-width:900px){ .wa{right:16px;bottom:calc(16px + env(safe-area-inset-bottom))} }
+/* Sul telefono il tasto si ancora in ALTO, a una distanza calcolata
+   sull'altezza piccola del viewport (barra di Safari visibile): così non
+   scende quando la barra si nasconde scorrendo, e resta fermo come
+   «[ SCORRI ]» e il lockup della hero (committente, 2026-09-25). */
+@media (max-width:900px){
+  .wa{right:16px;bottom:auto;top:calc(100svh - 16px - max(48px, 3.4rem))}
+}

@@ -345,11 +345,20 @@ body{
   :root{ --hd-h:60px }
   .hd{
     height:var(--hd-h);padding:0 16px;align-items:center;
-    background:color-mix(in srgb, var(--bg) 88%, transparent);
-    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
     border-bottom:1px solid var(--rule);
   }
+  /* Il fondo sfocato sta su uno pseudo-elemento e non sulla fascia: un
+     backdrop-filter sulla fascia farebbe di lei il riferimento del
+     pannello fisso del menu, e Safari su iPhone lo ritaglia lì dentro
+     (committente, 2026-09-25: «il menu a tendina non si vede»). */
+  .hd::before{
+    content:"";position:absolute;inset:0;z-index:-1;
+    background:color-mix(in srgb, var(--bg) 88%, transparent);
+    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  }
   .hd__logo{font-size:14px;gap:9px}
+  /* salzillo e costruzioni più vicini (committente, 2026-09-25) */
+  .hd__wordmark{line-height:.92}
   .hd__mark{width:30px}
   .hd__right{display:none}
 
@@ -358,7 +367,8 @@ body{
     width:44px;height:44px;margin-right:-10px;padding:0 10px;
     background:none;border:0;cursor:pointer;
   }
-  .hd__burger span{display:block;height:2px;background:var(--chrome);transition:transform .3s ease}
+  /* ☰ nel blu del marchio, come il simbolo accanto (2026-09-25) */
+  .hd__burger span{display:block;height:2px;background:var(--marchio-blu);transition:transform .3s ease}
   .hd.is-menu .hd__burger span:first-child{transform:translateY(4.5px) rotate(45deg)}
   .hd.is-menu .hd__burger span:last-child {transform:translateY(-4.5px) rotate(-45deg)}
 
@@ -367,23 +377,30 @@ body{
     height:calc(100dvh - var(--hd-h));
     display:flex;flex-direction:column;align-items:stretch;gap:0;
     padding:24px 16px calc(24px + env(safe-area-inset-bottom));
-    background:var(--bg);overflow-y:auto;
+    background:var(--marchio-blu);overflow-y:auto;
     opacity:0;visibility:hidden;transition:opacity .25s ease,visibility .25s;
   }
   .hd.is-menu .hd__center{opacity:1;visibility:visible}
-  .hd__center .nav__voce{padding:16px 0;border-bottom:1px solid var(--rule)}
-  .hd__center .nav__voce .lbl{font-size:24px;letter-spacing:.02em}
-  .nav__voce::after{display:none}
-  .nav__voce.is-qui .lbl{color:var(--marchio-blu)}
+  /* Il pannello è nel blu del marchio, le voci in bianco (committente,
+     2026-09-25); la voce della sezione in cui sei è piena e sottolineata. */
+  .hd__center .nav__voce{padding:16px 0;border-bottom:1px solid rgba(255,255,255,.22)}
+  .hd__center .nav__voce .lbl{font-size:24px;letter-spacing:.02em;color:rgba(255,255,255,.72)}
+  .hd__center .nav__voce.is-qui .lbl{color:#fff}
+  .hd__center .nav__voce::after{
+    left:0;right:auto;bottom:10px;width:32px;background:#fff;
+    display:none;transform:none;
+  }
+  .hd__center .nav__voce.is-qui::after{display:block}
   /* le sottovoci delle opere stanno sempre aperte, rientrate */
   .hd .nav__gruppo .nav__sub{
     position:static;transform:none;opacity:1;visibility:inherit;
     min-width:0;padding:4px 0 12px 16px;background:none;border:0;
-    border-bottom:1px solid var(--rule);
+    border-bottom:1px solid rgba(255,255,255,.22);
   }
   .nav__gruppo .nav__voce{border-bottom:0}
   .nav__sotto{padding:10px 0}
-  .nav__sotto .lbl{font-size:15px}
+  .hd__center .nav__sotto .lbl{font-size:15px;color:rgba(255,255,255,.72)}
+  .hd__center .nav__sotto.is-qui .lbl{color:#fff}
   body.menu-aperto{overflow:hidden}
   body.menu-aperto .wa{display:none}
 }

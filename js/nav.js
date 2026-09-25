@@ -161,6 +161,22 @@ window.NAV = (function(){
       }, {passive:true});
     });
 
+    /* Le foto dei caroselli sono in lazy: il browser le chiede solo
+       quando stanno per entrare, e sfogliando di lato si vedevano
+       arrivare in ritardo (committente, 2026-09-25). Sul telefono, appena
+       un carosello si avvicina scorrendo in verticale, si chiedono tutte
+       le sue foto insieme: quando lo si sfoglia sono già lì. */
+    if(matchMedia('(max-width: 900px)').matches && 'IntersectionObserver' in window){
+      const io = new IntersectionObserver(voci=>{
+        voci.forEach(v=>{
+          if(!v.isIntersecting) return;
+          v.target.querySelectorAll('img[loading="lazy"]').forEach(img=>{ img.loading = 'eager'; });
+          io.unobserve(v.target);
+        });
+      }, {rootMargin:'150% 0px'});
+      document.querySelectorAll('.cases-track, .storia-track').forEach(t=> io.observe(t));
+    }
+
     misura();
     dipingi();
     addEventListener('scroll', alloScroll, {passive:true});
