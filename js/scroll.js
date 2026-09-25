@@ -1042,9 +1042,11 @@ window.SEQ = (function(){
        il salto cade a mattone fuori schermo), e la corsa è contata
        all'indietro dallo schianto: quando il pallino è su GRAVITA' si
        trova esattamente nel punto della rottura, quante schermate ci
-       siano prima. Compare la prima volta che entra da sopra dopo che la
-       01 è entrata nello schermo: entra sempre da sopra, mai a metà
-       schermo, e a mezza velocità non salta la 01 e la 02.
+       siano prima. Entra da sopra proprio mentre la 01 entra da sotto:
+       la velocità è ritoccata di pochi punti attorno a PASSO perché fra
+       quel momento e lo schianto ci stia un numero intero di giri. Con
+       un passo fisso l'entrata cadeva a caso e, su certi schermi, il
+       mattone saltava la 01 e la 02 (committente, 2026-09-25).
        Lo scroll che lo guida è ammorbidito (quickTo, un terzo di
        secondo): non è agganciato al pixel del testo, quindi su Safari
        non trema. Dopo lo schianto resta sul pavimento rotto, e Perché
@@ -1068,14 +1070,15 @@ window.SEQ = (function(){
     const disegna = ()=>{
       const G = giro(), sR = quandoRompe(), yR = yRompe();
       const s = stato.s;
-      /* la prima entrata da sopra dopo che la 01 è entrata */
-      const via = s01 ? s01.getBoundingClientRect().top + scrollY - innerHeight : 0;
-      const D = (yR + H()) / PASSO, P = G / PASSO;
-      const entra = sR - D - Math.max(0, Math.floor((sR - D - via) / P)) * P;
+      /* entra (a y = -H) quando la cima della 01 tocca il fondo dello schermo */
+      const entra = s01 ? s01.getBoundingClientRect().top + scrollY - innerHeight : 0;
+      const corsa = Math.max(1, sR - entra);
+      const giri = Math.max(0, Math.round((PASSO * corsa - (yR + H())) / G));
+      const passo = (yR + H() + giri * G) / corsa;
       let y, vis;
       if(s >= sR){ y = yR; vis = true; }                       /* sul pavimento rotto */
       else {
-        const grezza = yR - PASSO * (sR - s);                   /* mezzo pixel per pixel */
+        const grezza = yR - passo * (sR - s);                   /* circa mezzo pixel per pixel */
         y = ((grezza + H()) % G + G) % G - H();
         vis = s >= entra;
       }
