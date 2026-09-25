@@ -786,6 +786,9 @@ html{font-size:1.05vw}
      sempre sopra il bordo visibile e scendono con lui quando la barra si
      nasconde — come il tasto WhatsApp. */
   .lockup, .corner{margin-bottom:calc(100lvh - 100dvh)}
+  /* …e lo stesso per la schermata di caricamento: «46 ANNI DI CANTIERI»
+     e la percentuale finivano sotto la barra (committente, 2026-09-25) */
+  .preloader{padding-bottom:calc(2.5% + 100lvh - 100dvh)}
 }
 
 @media (prefers-reduced-motion:reduce){

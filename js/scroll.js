@@ -193,21 +193,28 @@ window.SEQ = (function(){
     /* tutta la torre va in coda SUBITO, prima che il mattone
        (priorità 1) trovi slot liberi mentre arriva il primo frame */
     const ordine = CODA.ordine(FRAME_COUNT).filter(i=>i);
-    let mancano = 1 + ordine.filter(i=>i % PASSATA === 0).length;
+    /* +1: la silhouette del primo fotogramma. Senza, sul telefono (rete
+       più lenta) l'intro partiva col titolo DAVANTI al palazzo e solo
+       dopo un bel po' gli passava dietro (committente, 2026-09-25). */
+    let mancano = 2 + ordine.filter(i=>i % PASSATA === 0).length;
     const segna = ()=>{ if(--mancano === 0) pronto(); };
+    const prendiMatte = (i, cb)=> CODA.prendi(mattePath(i), 0, im=>{
+      if(im){ mattes[i] = im; if(state.shown) draw(true); }
+      if(cb) cb();
+    });
     loadFrame(0, ok=>{
       state.loadFailed = !ok;
       if(ok) sizeLogoMorph(); else return pronto();
       segna();
     });
-    ordine.forEach(i=>loadFrame(i, ()=>{ if(i % PASSATA === 0) segna(); }));
-
-    /* le silhouette non entrano nel conto del preloader: l'intro non
-       le aspetta, il primo piano si accende quando sono arrivate */
-    CODA.ordine(MATTE_COUNT).forEach(i=>{
-      CODA.prendi(mattePath(i), 2, im=>{
-        if(im){ mattes[i] = im; if(state.shown) draw(true); }
-      });
+    prendiMatte(0, segna);
+    /* Ogni silhouette va in coda subito dopo il SUO fotogramma, con la
+       stessa priorità: prima stavano in fondo (priorità 2), dopo tutti i
+       240 frame e il mattone, e il titolo restava davanti al palazzo per
+       tutto quel tempo. */
+    ordine.forEach(i=>{
+      loadFrame(i, ()=>{ if(i % PASSATA === 0) segna(); });
+      if(i < MATTE_COUNT) prendiMatte(i);
     });
   }
 
@@ -226,6 +233,16 @@ window.SEQ = (function(){
      Con una vicina i contorni non combacerebbero e si vedrebbe una
      seconda torre sfalsata di qualche pixel. */
   function nearestIdx(i){
+    /* Nei fotogrammi che hanno una silhouette si preferisce il più
+       vicino che ce l'ha GIÀ: un fotogramma senza la sua silhouette
+       disegnerebbe il titolo davanti al palazzo, e un fotogramma vicino
+       si nota molto meno di un titolo che salta davanti e dietro. */
+    const pieno = k => images[k] && (k >= MATTE_COUNT || mattes[k]);
+    if(pieno(i)) return i;
+    for(let d=1; d<FRAME_COUNT; d++){
+      if(i-d >= 0 && pieno(i-d)) return i-d;
+      if(i+d < FRAME_COUNT && pieno(i+d)) return i+d;
+    }
     if(images[i]) return i;
     for(let d=1; d<FRAME_COUNT; d++){
       if(images[i-d]) return i-d;
