@@ -6,7 +6,11 @@
    ══════════════════════════════════════════════════════════════ */
 
 html{font-size:1.05vw}
-@media (max-width:900px){ html{font-size:2.6vw} }
+/* Sul telefono il rem segue ancora la larghezza, ma dentro un tetto e
+   un pavimento (2026-09-25): a 390px vale come prima, e un Android da
+   360px o un iPhone Pro Max da 430px non rimpiccioliscono o gonfiano
+   tutto ciò che non ha già una misura sua. */
+@media (max-width:900px){ html{font-size:clamp(9.6px, 2.6vw, 11px)} }
 
 /* La pagina è trasparente e non cattura i click, tranne dove serve */
 #page{position:relative;z-index:1;pointer-events:none}
@@ -205,7 +209,19 @@ html{font-size:1.05vw}
    e lo sposta solo la y, quindi niente sticky da inseguire. Parte fuori
    schermo in alto; sul mobile non c'è (lì i mattoni sono posati). */
 .mattone-volo{will-change:transform}
-@media (max-width:900px){ .mattone-volo{display:none} }
+/* Sul telefono (2026-09-25) il mattone è di nuovo UNO, come sul
+   desktop: una fascia a tutta larghezza nel fondo fisso, dietro le
+   scritte di 02, 03 e piuma, che js/scroll.js (mattoneTelefono) aggancia
+   ai tre riquadri vuoti delle sezioni e tiene al centro dello schermo
+   mentre passa dall'uno all'altro. */
+@media (max-width:900px){
+  .mattone-volo{
+    width:100%;height:min(40svh, 300px);
+    -webkit-mask-image:linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
+    mask-image:linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
+    visibility:hidden;
+  }
+}
 /* default: oggetto a sinistra, testo a destra (sezione 4) */
 .chapter--duo .duo__oggetto{order:1}
 .chapter--duo .duo__testo  {order:2}
@@ -570,7 +586,11 @@ html{font-size:1.05vw}
 
 /* ── Mobile ───────────────────────────────────────────────── */
 @media (max-width:900px){
-  #hero-spacer{height:120vh}
+  /* la corsa della camera sulla torre (2026-09-25: la torre si muove
+     anche qui); dopo la 01 le sezioni hanno fondo pieno, così lo stage
+     fisso non trapela più sotto il testo */
+  #hero-spacer{height:220vh}
+  #s-cases{background:var(--bg)}
   .chapter, .chapter--m{height:auto}
   .chapter .sticky, #s-cerniera .sticky, #s-cantieri .sticky,
   #s-ristrutturazioni .sticky,
@@ -585,7 +605,6 @@ html{font-size:1.05vw}
   .cases-choice{flex-direction:column;gap:1.4rem;max-width:none}
   .case-card{aspect-ratio:4/3}
   .cases-veil{display:none}          /* niente apertura: le card restano card */
-  .bg__still{display:block}
   /* la galleria si impila: nome e categoria tornano in flusso, altrimenti
      restano in posizione assoluta sopra le foto e spariscono */
   .galleria__nome,.galleria__cat{position:static;text-align:left;padding:0 1.8rem}
@@ -618,8 +637,181 @@ html{font-size:1.05vw}
   .contact__cols{grid-template-columns:1fr}
 }
 
+/* ── Telefono: i capitoli 01–03 e la piuma (2026-09-25) ─────
+   Una colonna sola e un ritmo solo: etichetta, titolo, paragrafo, con
+   lo stesso margine di 16px ai lati. La 01 è una schermata intera
+   posata sull'ultimo fotogramma della torre, col testo in basso su un
+   velo di cemento; la 02 e la 03 hanno il mattone sopra il testo; la
+   piuma ha il mattone schiantato sopra il titolo. */
+@media (max-width:900px){
+  .chapter .sticky, #s-piuma .sticky{padding:56px 16px}
+  /* Niente velo: la torre se ne va prima che arrivi il testo, e al suo
+     posto c'è il mattone, che passa dietro le scritte (2026-09-25) */
+  #s01-arte .sticky{min-height:100svh;justify-content:flex-end;padding-bottom:48px}
+  #s01-arte .sec-display, #s02-struttura .sec-display, #s03-finiture .sec-display{
+    font-size:min(8.6vw, 3.4rem);line-height:.86;margin-bottom:0;
+  }
+  .sec-label{font-size:11px;margin-bottom:14px}
+  .chapter--nota-alta .sec-body, #s02-struttura .sec-body, #s03-finiture .sec-body{
+    font-size:16px;line-height:1.5;font-weight:600;margin-top:18px;
+  }
+  #s02-struttura .duo__para, #s03-finiture .duo__para{margin-top:0}
+  .chapter--duo .sticky{min-height:0;row-gap:8px}
+  /* il riquadro del mattone va da bordo a bordo e sfuma in alto e in
+     basso: il fondo del render non coincide al pixel col cemento */
+  .chapter--duo .duo__oggetto, #s-piuma .piuma__oggetto{
+    height:min(40svh, 300px);margin:0 -16px;
+    -webkit-mask-image:linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
+    mask-image:linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
+  }
+
+  /* Sotto il titolo, mezzo schermo di cemento: è lì che il mattone
+     rompe il pavimento, con GRAVITA' sopra e il nero di Perché Salzillo
+     subito sotto le crepe (committente, 2026-09-25). */
+  #s-piuma .sticky{min-height:0;justify-content:flex-start;padding-bottom:40svh}
+  #s-piuma .piuma__oggetto{position:relative;width:auto}
+  #s-piuma .sec-display--st{font-size:min(15vw, 4.2rem);line-height:.8;margin:8px 0 0}
+  /* il faretto resta, ma le righe spente restano leggibili */
+  .ignite .line{
+    color:color-mix(in srgb, var(--ignite-on) calc(max(var(--cur), .45) * 100%), var(--ignite-off));
+  }
+  .ignite__dot{left:-12px}
+}
+
+/* ── Telefono: perché, servizi, opere (2026-09-25) ────────────
+   Stesso ritmo dei capitoli: 56px sopra e sotto, 16px ai lati. Le due
+   gallerie diventano caroselli che si sfogliano col dito — una
+   schermata ciascuna invece di quattro foto giganti in colonna — con un
+   pezzo della foto dopo che spunta a destra e il nome che segue la foto
+   in vista (js/nav.js). */
+@media (max-width:900px){
+  #s-perche{padding:0}
+  .perche{padding:56px 16px;gap:28px}
+  .perche .sec-label{margin-bottom:0}
+  .orbita{width:100%;gap:10px}
+  .orbita__titolo{font-size:min(12vw, 3.4rem);margin-bottom:14px}
+  .chip-o{padding:14px 16px}
+  .chip-o summary{font-size:15px;min-height:24px}
+  .chip-o summary b{margin:-14px -16px -14px auto;padding:14px 16px}
+  .chip-o .sec-body{font-size:14px}
+  .perche .perche__cta{font-size:13px;padding:16px 24px;width:100%;text-align:center}
+
+  .servizi{padding:56px 16px}
+  .servizi .sec-label{margin-bottom:18px}
+  .servizi__grid{grid-template-columns:1fr}
+  .svc{min-height:0;padding:18px 16px}
+  .svc__t{font-size:16px;margin-bottom:6px}
+  .svc .sec-body{font-size:14px}
+
+  #s-cases .sticky{min-height:0;padding:56px 16px}
+  .cases-choice{gap:12px}
+  .case-card{flex:none;width:100%;aspect-ratio:16/9;padding:16px}
+  .case-card__t{font-size:26px}
+  .case-card__ft .lbl{font-size:11px}
+
+  #s-cantieri .sticky, #s-ristrutturazioni .sticky{min-height:0;padding:56px 0}
+  .galleria__nome{font-size:28px;padding:0 16px;margin-bottom:16px}
+  .galleria__cat{font-size:15px;padding:0 16px;margin-top:16px}
+  .cases-track{
+    flex-direction:row;width:auto;gap:12px;padding:0 16px;
+    overflow-x:auto;overscroll-behavior-x:contain;
+    scroll-snap-type:x mandatory;scroll-padding:0 16px;
+    scrollbar-width:none;pointer-events:auto;
+  }
+  .cases-track::-webkit-scrollbar{display:none}
+  .case{flex:0 0 84%;width:auto;aspect-ratio:4/3;scroll-snap-align:start}
+  .case img{height:100%}
+}
+
+/* ── Telefono: in vendita, storia, contatti (2026-09-25) ──────
+   In vendita resta una colonna di schede, più compatte. La storia
+   diventa un carosello come le gallerie: undici opere in una schermata
+   invece di sei. Nei contatti il piè di pagina va in colonna e lascia
+   posto al tasto WhatsApp, e i campi hanno 16px: sotto, Safari su
+   iPhone ingrandisce la pagina a ogni tocco su un campo. */
+@media (max-width:900px){
+  .vendita{padding:56px 16px}
+  .vendita .sec-label--cases{padding:0}
+  .vendita .sec-display--sm{font-size:min(11vw, 3rem);margin-bottom:0}
+  .vendita__grid{gap:16px;margin-top:20px}
+  .imm__foto{aspect-ratio:16/9}
+  .imm__t{font-size:18px;padding:16px 16px 10px}
+  .imm__dati{gap:12px;padding:0 16px 16px}
+  .imm__dati dt{font-size:11px}
+  .imm__v{font-size:15px}
+  .imm__cta{font-size:13px;padding:16px;min-height:48px}
+
+  #s-storia .sticky{min-height:0;padding:56px 0}
+  #s-storia .sec-label{padding:0 16px;margin-bottom:18px}
+  .storia-track{
+    flex-direction:row;width:auto;gap:12px;padding:0 16px;
+    overflow-x:auto;overscroll-behavior-x:contain;
+    scroll-snap-type:x mandatory;scroll-padding:0 16px;
+    scrollbar-width:none;pointer-events:auto;
+  }
+  .storia-track::-webkit-scrollbar{display:none}
+  .tappa{flex:0 0 78%;width:auto;padding-bottom:16px;scroll-snap-align:start}
+  .tappa__foto{margin-bottom:14px}
+  .tappa > :not(.tappa__foto){padding:0 16px}
+  .tappa__anno{font-size:40px;margin-bottom:8px}
+  .tappa__luogo{font-size:16px}
+  .tappa__tipo{font-size:11px}
+
+  .contact{padding:56px 16px 24px}
+  .contact .sec-display--sm{font-size:min(14vw, 4rem);margin-bottom:0}
+  .contact__cols{gap:36px;padding:28px 0}
+  .contact__block .lbl{font-size:11px;margin:24px 0 8px}
+  .contact__block .sec-body{font-size:16px}
+  .contact__link{display:inline-block;padding:4px 0}
+  .contact__form{max-width:none}
+  .contact__form .lbl{font-size:11px;margin:18px 0 6px}
+  .contact__form input,.contact__form textarea{font-size:16px;padding:10px 0}
+  .contact__form .btn-accent{width:100%;margin-top:24px;padding:16px}
+  .contact__foot{
+    flex-direction:column;gap:8px;padding-right:0;
+    padding-bottom:calc(72px + env(safe-area-inset-bottom));
+  }
+}
+
+/* ── Telefono: rifinitura (2026-09-25) ────────────────────────
+   Nessun testo sotto i 12px: le micro-etichette erano tarate in cqw e
+   rem sul desktop, e a 360px scendevano fino a 7px. */
+@media (max-width:900px){
+  #page .lbl{font-size:12px}
+  .case__n{font-size:12px}
+  .todo, .case--vuota .case__posto .todo{font-size:12px}
+  .corner .lbl{font-size:11px}
+  .btn-accent{font-size:14px}
+  /* Safari: lo stage fisso è alto 100vh, cioè quanto lo schermo con la
+     barra degli indirizzi NASCOSTA. Lockup e angolo si alzano di quanto
+     la barra occupa in quel momento (100dvh segue la barra), così stanno
+     sempre sopra il bordo visibile e scendono con lui quando la barra si
+     nasconde — come il tasto WhatsApp. */
+  .lockup, .corner{margin-bottom:calc(100lvh - 100dvh)}
+  /* …e lo stesso per la schermata di caricamento: «46 ANNI DI CANTIERI»
+     e la percentuale finivano sotto la barra (committente, 2026-09-25) */
+  .preloader{padding-bottom:calc(2.5% + 100lvh - 100dvh)}
+  .stage.hero-via .hero, .stage.hero-via .lockup,
+  .stage.hero-via .corner, .stage.hero-via .grid{visibility:hidden !important}
+}
+
 @media (prefers-reduced-motion:reduce){
   .cases-track,.storia-track{transform:none !important}
+}
+
+/* Perché Salzillo porta con sé la notte: i token vivi sono fissati qui
+   dentro, così il suo fondo è nero in ogni istante, qualunque sia --t.
+   Sul desktop serve al pannello che sale sopra la gravità (vedi sotto);
+   sul telefono evita che la sezione resti chiara e diventi nera di colpo
+   a metà lettura, quando --t scatta (2026-09-25: stava solo nel desktop). */
+#s-perche{
+  --paper:var(--paper-d);--sunk:var(--sunk-d);--lift:var(--lift-d);
+  --ink:var(--ink-d);--ink2:var(--ink2-d);--mute:var(--mute-d);--max:var(--max-d);
+  --rule:var(--rule-d);--divider:var(--div-d);
+  --bg:var(--paper);--surface-1:var(--sunk);--surface-2:var(--lift);
+  --text-display:var(--ink);--text-bright:var(--ink2);--text-muted:var(--mute);
+  --text-max:var(--max);--divider-solid:var(--divider);
+  background:var(--paper-d);
 }
 
 /* ── Pagine: da "perché Salzillo" ai contatti (2026-09-23) ────────
@@ -640,16 +832,7 @@ html{font-size:1.05vw}
   /* Il pannello porta con sé la notte: i token vivi sono fissati qui
      dentro, così il tema della pagina (--t) può virare solo a pannello
      arrivato, e il cemento ancora scoperto sopra non passa dal grigio. */
-  #s-perche{
-    margin-top:-100vh;position:relative;z-index:1;
-    --paper:var(--paper-d);--sunk:var(--sunk-d);--lift:var(--lift-d);
-    --ink:var(--ink-d);--ink2:var(--ink2-d);--mute:var(--mute-d);--max:var(--max-d);
-    --rule:var(--rule-d);--divider:var(--div-d);
-    --bg:var(--paper);--surface-1:var(--sunk);--surface-2:var(--lift);
-    --text-display:var(--ink);--text-bright:var(--ink2);--text-muted:var(--mute);
-    --text-max:var(--max);--divider-solid:var(--divider);
-    background:var(--paper-d);
-  }
+  #s-perche{margin-top:-100vh;position:relative;z-index:1}
   [data-pagina] > .sticky, .perche, .servizi, .contact, .vendita{
     position:relative;top:auto;height:100vh;min-height:0;
   }
@@ -715,4 +898,9 @@ html{font-size:1.05vw}
 .contact__foot .contact__firma:hover{color:var(--marchio-blu)}
 /* il piè di pagina lascia spazio al tasto, che altrimenti copre «© 2026» */
 .contact__foot{padding-right:4.6rem}
-@media (max-width:900px){ .wa{right:1rem;bottom:1rem} }
+/* Sul telefono il tasto segue il bordo basso visibile: quando la barra
+   di Safari si nasconde scende con lui. Lockup e «[ SCORRI ]» della
+   hero fanno lo stesso (sotto, «rifinitura»): committente, 2026-09-25. */
+@media (max-width:900px){
+  .wa{right:16px;bottom:calc(16px + env(safe-area-inset-bottom))}
+}

@@ -7,8 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=TASA+Orbiter:wght@400..800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=25">
-<link rel="stylesheet" href="css/sections.css?v=64">
+<link rel="stylesheet" href="css/style.css?v=30">
+<link rel="stylesheet" href="css/sections.css?v=78">
 </head>
 <body>
 
@@ -162,7 +162,7 @@
          resta uno solo che scorre, e la voce accesa è quella della
          sezione in cui ti trovi (js/nav.js). Le opere hanno tre
          categorie, che si aprono passando sopra la voce. -->
-    <nav class="hd__center nav" aria-label="Sezioni del sito">
+    <nav class="hd__center nav" id="navMenu" aria-label="Sezioni del sito">
       <a class="nav__voce" href="#hero-spacer" data-sez="intro">
         <span class="lbl" data-copy="navCenter">Introduzione</span>
       </a>
@@ -192,6 +192,12 @@
       <span class="lbl" data-copy="navRight">IN VENDITA</span>
       <span class="icon-blocks"><i></i><i></i></span>
     </a>
+    <!-- Solo sul telefono: il menu si apre a tutto schermo da qui
+         (committente, 2026-09-25). Lo comanda js/nav.js. -->
+    <button class="hd__burger" type="button" aria-label="Apri il menu"
+            aria-expanded="false" aria-controls="navMenu">
+      <span></span><span></span>
+    </button>
   </header>
 
 <!-- ═══════════════ PAGINA CHE SCORRE ═══════════════ -->
@@ -338,6 +344,7 @@
            così l'incontro regge a qualunque schermo. -->
       <h2 class="sec-display sec-display--st ignite"
           data-ignite-start="top 90%" data-ignite-end="43.4% top"
+          data-ignite-start-m="top 95%" data-ignite-end-m="bottom 22%"
           data-ignite-fine="ultima">
         <!-- Quattro righe, e l'ultima è UNA parola sola: il faretto si
              ferma su «GRAVITA'» nell'istante in cui il mattone tocca il
@@ -625,10 +632,10 @@
           <p class="tappa__tipo">Villette a schiera</p>
         </article>
         <article class="tappa">
-          <img class="tappa__foto" src="assets/storia/07.webp" alt="Capannone a Marcianise, 2005" loading="lazy">
+          <img class="tappa__foto" src="assets/storia/07.webp" alt="Capannone industriale a Marcianise, 2005" loading="lazy">
           <span class="tappa__anno">2005</span>
           <p class="tappa__luogo">Marcianise</p>
-          <p class="tappa__tipo">Capannone</p>
+          <p class="tappa__tipo">Capannone industriale</p>
         </article>
         <article class="tappa">
           <img class="tappa__foto" src="assets/storia/08.webp" alt="Condominio a Maddaloni, 2006" loading="lazy">
@@ -637,16 +644,16 @@
           <p class="tappa__tipo">Condominio</p>
         </article>
         <article class="tappa">
-          <img class="tappa__foto" src="assets/storia/09.webp" alt="Condominio a San Tammaro, 2010" loading="lazy">
+          <img class="tappa__foto" src="assets/storia/09.webp" alt="Capannone industriale a San Tammaro, 2010" loading="lazy">
           <span class="tappa__anno">2010</span>
           <p class="tappa__luogo">San Tammaro</p>
-          <p class="tappa__tipo">Condominio</p>
+          <p class="tappa__tipo">Capannone industriale</p>
         </article>
         <article class="tappa">
-          <img class="tappa__foto" src="assets/storia/10.webp" alt="Capannone a Marcianise, 2011" loading="lazy">
+          <img class="tappa__foto" src="assets/storia/10.webp" alt="Villette a schiera a Marcianise, 2011" loading="lazy">
           <span class="tappa__anno">2011</span>
           <p class="tappa__luogo">Marcianise</p>
-          <p class="tappa__tipo">Capannone</p>
+          <p class="tappa__tipo">Villette a schiera</p>
         </article>
         <article class="tappa">
           <img class="tappa__foto" src="assets/storia/11.webp" alt="Condominio a San Prisco, 2012" loading="lazy">
@@ -712,12 +719,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/ScrollTrigger.min.js"></script>
 <script src="js/varianti.js?v=4"></script>
 <script src="js/effects/feather.js?v=8"></script>
-<script src="js/effects/diagrams.js?v=6"></script>
-<script src="js/effects/brick.js?v=4"></script>
-<script src="js/type.js?v=10"></script>
-<script src="js/scroll.js?v=45"></script>
+<script src="js/effects/diagrams.js?v=9"></script>
+<script src="js/effects/brick.js?v=7"></script>
+<script src="js/type.js?v=13"></script>
+<script src="js/scroll.js?v=63"></script>
 <script src="js/hero.js?v=13"></script>
-<script src="js/nav.js?v=4"></script>
+<script src="js/nav.js?v=7"></script>
 <script>
   /* link ancora da completare (WhatsApp, Instagram): non fanno nulla */
   document.querySelectorAll('a[data-vuoto]').forEach(a=>a.addEventListener('click', e=>e.preventDefault()));

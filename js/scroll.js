@@ -43,6 +43,7 @@ window.CODA = (function(){
       if(!url) return;
       attivi++;
       const e  = cache.get(url);
+      e.partito = true;
       const im = new Image();
       const fine = ok=>{
         attivi--;
@@ -56,14 +57,23 @@ window.CODA = (function(){
     }
   }
 
+  /* prio < 0: URGENTE, passa davanti a tutta la coda (anche a un file
+     già in coda ma non ancora partito). Serve al fotogramma del mattone
+     che si vede per primo sul telefono: in fondo alla coda arrivava
+     dopo tutta la torre, e al primo scroll si vedeva solo l'ombra. */
   function prendi(url, prio, cb){
     let e = cache.get(url);
     if(e){
       if(e.fatto) cb(e.im); else e.cbs.push(cb);
+      if(!e.fatto && prio < 0){
+        file.forEach(f=>{ const k = f.indexOf(url); if(k > -1) f.splice(k, 1); });
+        if(!e.partito){ file[0].unshift(url); pompa(); }
+      }
       return;
     }
     cache.set(url, e = {im:null, fatto:false, ok:false, cbs:[cb]});
-    file[Math.min(Math.max(prio|0, 0), file.length - 1)].push(url);
+    if(prio < 0) file[0].unshift(url);
+    else file[Math.min(Math.max(prio|0, 0), file.length - 1)].push(url);
     pompa();
   }
 
@@ -83,6 +93,13 @@ window.CODA = (function(){
   return { prendi, ordine };
 })();
 
+/* Pixel per punto dei canvas. Sul desktop resta il tetto di 2; sul
+   telefono si va fino a 3 (iPhone): a 2 il canvas veniva poi ingrandito
+   dal browser di 1,5 volte e tutto risultava sfocato (committente,
+   2026-09-25: «si vede molto sfocato»). */
+const densita = ()=> Math.min(devicePixelRatio || 1,
+  matchMedia('(max-width: 900px)').matches ? 3 : 2);
+
 window.FRAMESEQ = function(canvas, opts){
   const n    = opts.count;
   const path = opts.path;
@@ -90,13 +107,22 @@ window.FRAMESEQ = function(canvas, opts){
   const img  = new Array(n).fill(null);
   let drawn  = -1, avviato = false;
 
-  function preload(){
+  /* filtro: quali fotogrammi servono davvero (sul telefono il mattone
+     ne usa uno su due, e solo dal momento in cui è intero) */
+  const arrivato = i => im=>{
+    if(!im) return;
+    img[i] = im;
+    drawn = -1;      /* un vicino più preciso può essere appena arrivato */
+  };
+  function preload(filtro){
     if(avviato) return; avviato = true;
-    CODA.ordine(n).forEach(i=>CODA.prendi(path(i), 1, im=>{
-      if(!im) return;
-      img[i] = im;
-      drawn = -1;      /* un vicino più preciso può essere appena arrivato */
-    }));
+    CODA.ordine(n).filter(i => !filtro || filtro(i))
+      .forEach(i=>CODA.prendi(path(i), 1, arrivato(i)));
+  }
+  /* un fotogramma davanti a tutta la coda */
+  function anticipa(p){
+    const i = Math.max(0, Math.min(n-1, Math.round(p * (n-1))));
+    CODA.prendi(path(i), -1, arrivato(i));
   }
   function vicino(i){
     if(img[i]) return img[i];
@@ -113,7 +139,7 @@ window.FRAMESEQ = function(canvas, opts){
     if(!force && i === drawn) return;
     const im = vicino(i);
     if(!im) return;
-    const dpr = Math.min(devicePixelRatio||1, 2);
+    const dpr = densita();
     const cw = canvas.clientWidth, ch = canvas.clientHeight;
     if(!cw || !ch) return;
     if(canvas.width !== Math.round(cw*dpr) || canvas.height !== Math.round(ch*dpr)){
@@ -127,7 +153,7 @@ window.FRAMESEQ = function(canvas, opts){
     ctx.drawImage(im, (cw-im.width*s)/2, (ch-im.height*s)/2, im.width*s, im.height*s);
     drawn = i;
   }
-  return { preload, draw, get pronto(){ return !!img[0]; } };
+  return { preload, anticipa, draw, get pronto(){ return !!img[0]; } };
 };
 
 window.SEQ = (function(){
@@ -182,8 +208,9 @@ window.SEQ = (function(){
 
   function startLoading(){
     if(!canvas) return;
-    /* sotto i 900px il canvas non si usa (fondi fissi): basta il primo */
-    const mobile = matchMedia('(max-width: 900px)').matches;
+    /* Dal 2026-09-25 la torre si muove anche sul telefono (scelta del
+       committente): la coda dei frame e delle silhouette è la stessa
+       del desktop su tutti i formati. */
     const pronto = ()=>{
       if(state.ready) return;
       state.ready = true;
@@ -191,25 +218,36 @@ window.SEQ = (function(){
     };
     /* tutta la torre va in coda SUBITO, prima che il mattone
        (priorità 1) trovi slot liberi mentre arriva il primo frame */
-    const ordine = mobile ? [] : CODA.ordine(FRAME_COUNT).filter(i=>i);
-    let mancano = 1 + ordine.filter(i=>i % PASSATA === 0).length;
+    /* Sul telefono un fotogramma su due (e la sua silhouette): metà dei
+       file e dei byte, e sulla corsa corta del telefono lo scrub resta
+       fluido — 2026-09-25, «aumenta anche la velocità». L'ultimo c'è
+       sempre, è quello su cui la sequenza si ferma. */
+    const meta = stretto.matches;
+    const serve = i => !meta || i % 2 === 0 || i === FRAME_COUNT - 1;
+    const ordine = CODA.ordine(FRAME_COUNT).filter(i => i && serve(i));
+    /* +1: la silhouette del primo fotogramma. Senza, sul telefono (rete
+       più lenta) l'intro partiva col titolo DAVANTI al palazzo e solo
+       dopo un bel po' gli passava dietro (committente, 2026-09-25). */
+    let mancano = 2 + ordine.filter(i=>i % PASSATA === 0).length;
     const segna = ()=>{ if(--mancano === 0) pronto(); };
+    const prendiMatte = (i, cb)=> CODA.prendi(mattePath(i), 0, im=>{
+      if(im){ mattes[i] = im; if(state.shown) draw(true); }
+      if(cb) cb();
+    });
     loadFrame(0, ok=>{
       state.loadFailed = !ok;
       if(ok) sizeLogoMorph(); else return pronto();
       segna();
     });
-    ordine.forEach(i=>loadFrame(i, ()=>{ if(i % PASSATA === 0) segna(); }));
-
-    /* le silhouette non entrano nel conto del preloader: l'intro non
-       le aspetta, il primo piano si accende quando sono arrivate */
-    if(!mobile){
-      CODA.ordine(MATTE_COUNT).forEach(i=>{
-        CODA.prendi(mattePath(i), 2, im=>{
-          if(im){ mattes[i] = im; if(state.shown) draw(true); }
-        });
-      });
-    }
+    prendiMatte(0, segna);
+    /* Ogni silhouette va in coda subito dopo il SUO fotogramma, con la
+       stessa priorità: prima stavano in fondo (priorità 2), dopo tutti i
+       240 frame e il mattone, e il titolo restava davanti al palazzo per
+       tutto quel tempo. */
+    ordine.forEach(i=>{
+      loadFrame(i, ()=>{ if(i % PASSATA === 0) segna(); });
+      if(i < MATTE_COUNT) prendiMatte(i);
+    });
   }
 
   function whenReady(cb, timeout){
@@ -227,6 +265,16 @@ window.SEQ = (function(){
      Con una vicina i contorni non combacerebbero e si vedrebbe una
      seconda torre sfalsata di qualche pixel. */
   function nearestIdx(i){
+    /* Nei fotogrammi che hanno una silhouette si preferisce il più
+       vicino che ce l'ha GIÀ: un fotogramma senza la sua silhouette
+       disegnerebbe il titolo davanti al palazzo, e un fotogramma vicino
+       si nota molto meno di un titolo che salta davanti e dietro. */
+    const pieno = k => images[k] && (k >= MATTE_COUNT || mattes[k]);
+    if(pieno(i)) return i;
+    for(let d=1; d<FRAME_COUNT; d++){
+      if(i-d >= 0 && pieno(i-d)) return i-d;
+      if(i+d < FRAME_COUNT && pieno(i+d)) return i+d;
+    }
     if(images[i]) return i;
     for(let d=1; d<FRAME_COUNT; d++){
       if(images[i-d]) return i-d;
@@ -235,11 +283,32 @@ window.SEQ = (function(){
     return -1;
   }
 
-  function metrics(im){
+  /* Sul telefono in verticale si vede un terzo della larghezza del
+     frame, e nell'ultimo tratto della discesa la torre scivola a
+     sinistra (dal 50% al 30% del frame): con l'inquadratura centrata
+     usciva dallo schermo. Qui la finestra la insegue (2026-09-25).
+     Punti misurati sui frame 1…240; al frame 0 resta il centro, così
+     il marchio che diventa torre combacia ancora. Solo sotto i 900px:
+     sul desktop il taglio laterale è di pochi pixel e non si tocca. */
+  const FUOCO = [[0,.50],[170,.50],[200,.41],[240,.30]];
+  const stretto = matchMedia('(max-width: 900px)');
+  function fuoco(i){
+    for(let k=1; k<FUOCO.length; k++){
+      const [a, fa] = FUOCO[k-1], [b, fb] = FUOCO[k];
+      if(i <= b) return fa + (fb - fa) * clamp01((i - a) / (b - a));
+    }
+    return FUOCO[FUOCO.length-1][1];
+  }
+
+  function metrics(im, i){
     const cw = canvas.clientWidth, ch = canvas.clientHeight;
     const s  = Math.max(cw/im.width, ch/im.height);
-    return { cw, ch, s,
-             dx:(cw - im.width *s)/2,
+    let dx = (cw - im.width*s)/2;
+    if(stretto.matches && i){
+      dx = cw/2 - im.width*s*fuoco(i);
+      dx = Math.min(0, Math.max(cw - im.width*s, dx));
+    }
+    return { cw, ch, s, dx,
              dy:(ch - im.height*s)/2 };
   }
 
@@ -261,12 +330,12 @@ window.SEQ = (function(){
     state.bucoFirma = firma;
 
     const im = images[j];
-    const dpr = Math.min(devicePixelRatio||1, 2);
+    const dpr = densita();
     const cw = canvas.clientWidth, ch = canvas.clientHeight;
     if(canvas.width !== Math.round(cw*dpr) || canvas.height !== Math.round(ch*dpr)){
       canvas.width = Math.round(cw*dpr); canvas.height = Math.round(ch*dpr);
     }
-    const m = metrics(im);
+    const m = metrics(im, j);
 
     if(fondoNuovo){
       ctx.setTransform(dpr,0,0,dpr,0,0);
@@ -569,9 +638,13 @@ window.SEQ = (function(){
      Serve un punto solo e uguale per tutti — la sezione entra per tre
      quarti — e le tappe che non hanno una sezione propria (quella
      dentro le card) sul mobile non esistono. */
+  /* data-flip-soglia sposta quel punto per una sezione sola (frazione
+     di schermo): serve alla 01 sul telefono, il cui cemento deve
+     arrivare mentre la torre sfuma, ben prima del 30%. */
   function threshold(s){
+    const f = s.el ? parseFloat(s.el.dataset.flipSoglia) || .3 : .3;
     return s.el
-      ? s.el.getBoundingClientRect().top + scrollY - innerHeight * .3
+      ? s.el.getBoundingClientRect().top + scrollY - innerHeight * f
       : Infinity;
   }
 
@@ -679,17 +752,28 @@ window.SEQ = (function(){
     /* #s-via non esiste più (tolta il 2026-09-23): il suo posto in
        pagina è ora il top di #s02-struttura, quindi le soglie restano
        le stesse e i due trigger cambiano solo nome. */
-    [['#s02-struttura','#s01-arte .sticky',     'top 160%','top 120%'],
-     ['#s03-finiture','#s02-struttura .sticky','top 220%','top 175%'],
-     ['#s-piuma',     '#s03-finiture .sticky', 'top 220%','top 175%'],
-     ['#s-storia',    '#s-vendita .vendita',   'top bottom','top 78%']]
-      .forEach(([entra, esce, start, end])=>{
-        if(!document.querySelector(esce) || !document.querySelector(entra)) return;
+    /* Tutte le coppie solo sul desktop (2026-09-25): le soglie sono
+       tarate su capitoli alti 350–400vh, e sul telefono — dove i
+       capitoli sono alti quanto il loro testo — la sezione dopo arriva
+       al 160% dello schermo mentre la precedente è appena entrata, e il
+       testo spariva prima di essere letto. */
+    /* Anche il congedo di "in vendita": sul telefono le schede sono in
+       colonna e l'ultima sfumava mentre la si stava ancora leggendo. */
+    const congedi = [['#s02-struttura','#s01-arte .sticky',     'top 160%','top 120%'],
+                     ['#s03-finiture','#s02-struttura .sticky','top 220%','top 175%'],
+                     ['#s-piuma',     '#s03-finiture .sticky', 'top 220%','top 175%'],
+                     ['#s-storia',    '#s-vendita .vendita',   'top bottom','top 78%']]
+      .map(c => c.concat('(min-width: 901px)'));
+    const mmCongedi = gsap.matchMedia();
+    congedi.forEach(([entra, esce, start, end, media])=>{
+      if(!document.querySelector(esce) || !document.querySelector(entra)) return;
+      mmCongedi.add(media, ()=>{
         gsap.to(esce, {
           autoAlpha:0, ease:'none', immediateRender:false,
           scrollTrigger:{trigger:entra, start, end, scrub:true}
         });
       });
+    });
 
     document.querySelectorAll('[data-flip]').forEach(sec=>{
       const to   = parseFloat(sec.dataset.flip);
@@ -885,14 +969,140 @@ window.SEQ = (function(){
         const el = document.querySelector(sel);
         if(el) BRICK.monta(el, 0, 1);
       });
-      BRICK.preload();
+      BRICK.preload(stretto.matches);
     }
-    const luce = parseFloat(getComputedStyle(root).getPropertyValue('--t')) || 0;
+    /* Dal 2026-09-24 la 02, la 03 e la piuma sono tutte chiare: il
+       mattone posato è sempre quello scuro su cemento. Prima si leggeva
+       --t all'avvio, che in cima alla pagina è notte, e sul telefono
+       compariva il mattone chiaro sul fondo chiaro. */
+    const luce = 1;
     /* i frame arrivano in differita: si ridipinge quando ci sono */
     const dipingi = ()=> BRICK.draw(1, luce);
     dipingi();
     setTimeout(dipingi, 400);
     setTimeout(dipingi, 1600);
+  }
+
+  /* ── il mattone sul telefono (2026-09-25) ─────────────────
+     UN mattone solo, nel fondo fisso (.mattone-volo), dietro le scritte
+     di 02, 03 e piuma. Seconda versione, dopo la prova sull'iPhone del
+     committente: seguire i riquadri a ogni scroll lo faceva traballare
+     (Safari muove la pagina prima che il JS sposti il livello fisso).
+     Ora non è mai agganciato al pixel del testo:
+     - in 01, 02 e 03 attraversa tutto lo schermo dall'alto in basso e
+       rientra da sopra per la sezione dopo, come sul desktop (vedi
+       «gli attraversamenti» più sotto);
+     - resta sospeso (fotogramma U0) finché non arriva il titolo della
+       piuma; poi cade mentre il pallino scende TEMPO / E, e rompe il
+       pavimento esattamente quando il pallino arriva su GRAVITA', che a
+       quel punto è già salita sopra di lui, in basso, col nero di
+       Perché Salzillo già sotto le crepe;
+     - Perché Salzillo sale e lo copre.
+     Scrollando indietro oltre l'inizio della 01 risale e sparisce. */
+  function mattoneTelefono(){
+    const el = document.querySelector('.mattone-volo');
+    const titolo = document.querySelector('#s-piuma .sec-display--st');
+    const fondo = document.querySelector('#bg');
+    if(!window.BRICK || !el || !titolo || !fondo) return;
+    if(!el.querySelector('canvas')) BRICK.monta(el, 0, 1);
+    /* ROMPE: un filo oltre il punto in cui il pallino salta su GRAVITA'
+       (.75 / .875), così lo schianto non lo anticipa mai; APRE: quanta
+       corsa servono alle crepe per aprirsi tutte, prima che il nero salga */
+    const U0 = .27, U_IMPATTO = .62, CADE = .55, ROMPE = .77 / .875, APRE = .05;
+    /* Prima di tutto il fotogramma sospeso, davanti alla torre: è il
+       primo che si vede, e in coda arrivava dopo tutto il resto (al
+       primo scroll c'era solo l'ombra). Poi solo quelli che servono:
+       da U0 in poi, uno su due — un terzo dei file del bake. */
+    BRICK.anticipa(U0, true);
+    const primo = Math.round(U0 * (BRICK.N - 1));
+    BRICK.preload(true, i => i >= primo && (i - primo) % 2 === 0);
+    BRICK.opacita(1);
+
+    /* Il bake: sospeso a U0, cade fino all'impatto (0,62 = m_075) e poi
+       apre le crepe. La corsa è quella del faretto del titolo sul
+       telefono (data-ignite-*-m, js/type.js): il pallino è sull'ultima
+       riga da 3/4 della sua corsa in poi, e la corsa si ferma a 3,5/4
+       (data-ignite-fine="ultima"), cioè al 75/87,5 = 85,7% del trigger. */
+    const fot = q => q < CADE  ? U0
+                   : q < ROMPE ? U0 + (U_IMPATTO - U0) * (q - CADE) / (ROMPE - CADE)
+                   : U_IMPATTO + (1 - U_IMPATTO) * Math.min(1, (q - ROMPE) / APRE);
+    const st = ScrollTrigger.create({
+      trigger:titolo,
+      start:titolo.dataset.igniteStartM || 'top 95%',
+      end:  titolo.dataset.igniteEndM   || 'bottom 22%',
+      onUpdate:s => BRICK.draw(fot(s.progress), 1),
+      onRefresh:s => BRICK.draw(fot(s.progress), 1)
+    });
+
+    /* ── gli attraversamenti (quarta versione, committente 2026-09-25) ──
+       Come sul desktop: in 01, 02 e 03 il mattone attraversa tutto lo
+       schermo dall'alto in basso, esce sotto e rientra da sopra per la
+       sezione dopo; nella piuma entra un'ultima volta e si ferma sul bordo
+       di Perché Salzillo, dove rompe il pavimento sul pallino di GRAVITA'.
+       Un'unica coordinata continua `v` fa tutta la corsa: ogni
+       attraversamento vale GIRO (schermo + mattone), e la y è v modulo
+       GIRO — il salto da sotto a sopra cade a mattone fuori schermo. `v`
+       insegue lo scroll ammorbidita (quickTo, come lo scrub di prima): non
+       è agganciata al pixel del testo, quindi su Safari non trema. Quattro
+       tween separati sullo stesso `y` si sarebbero pestati tornando su. */
+    const perche = document.querySelector('#s-perche');
+    const H = ()=> el.offsetHeight;
+    const quandoRompe = ()=> st.start + ROMPE * (st.end - st.start);
+    /* dove sta il riquadro allo schianto: nel fotogramma dell'impatto il
+       mattone occupa il 70-90% della sua altezza e le crepe arrivano al
+       fondo; il riquadro finisce poco sopra il nero, così il mattone è
+       intero e sotto le crepe comincia Perché Salzillo */
+    const yRompe = ()=> perche
+      ? perche.getBoundingClientRect().top + scrollY - quandoRompe() - H() - 16
+      : fondo.clientHeight - H();
+    /* dove comincia ogni attraversamento: quando la sezione è salita al
+       60% dello schermo; l'ultimo tratto finisce allo schianto */
+    const TAPPE = ['#s01-arte', '#s02-struttura', '#s03-finiture', '#s-piuma']
+      .map(q => document.querySelector(q)).filter(Boolean);
+    const cima = e => e.getBoundingClientRect().top + scrollY;
+    const giro = ()=> fondo.clientHeight + H();
+    const ULTIMO = TAPPE.length - 1;
+
+    /* v voluta per questa posizione di scroll */
+    const vVoluta = ()=>{
+      const y = scrollY, G = giro();
+      const b = TAPPE.map(t => cima(t) - innerHeight * .6).concat(quandoRompe());
+      if(y <= b[0]) return 0;
+      for(let i = 0; i < TAPPE.length; i++){
+        if(y < b[i+1]){
+          const corsa = i < ULTIMO ? G : yRompe() + H();
+          return i * G + corsa * (y - b[i]) / (b[i+1] - b[i]);
+        }
+      }
+      return ULTIMO * G + yRompe() + H();
+    };
+    /* v → y: negli attraversamenti a modulo, nell'ultimo tratto diretta */
+    const stato = {v:0};
+    const disegna = ()=>{
+      const G = giro(), v = stato.v;
+      const y = v >= ULTIMO * G ? v - ULTIMO * G - H() : (v % G) - H();
+      gsap.set(el, {y, autoAlpha: v > .5 ? 1 : 0});
+    };
+    const insegui = gsap.quickTo(stato, 'v', {duration:.8, ease:'power3', onUpdate:disegna});
+    const aggiorna = salta =>{
+      const v = vVoluta();
+      /* un salto lungo (menu, ricarica a metà pagina) non fa volare il
+         mattone attraverso tre schermate: si posa direttamente */
+      if(salta === true || Math.abs(v - stato.v) > giro() * 1.5){
+        stato.v = v; insegui(v, v); disegna();
+      } else insegui(v);
+    };
+    ScrollTrigger.create({
+      trigger:'#s01-arte', start:'top bottom', end:'max',
+      onUpdate:()=> aggiorna(), onRefresh:()=> aggiorna(true)
+    });
+    aggiorna(true);
+
+    /* i fotogrammi arrivano in differita: si ridipinge quando ci sono */
+    const ridipingi = ()=> BRICK.draw(fot(st.progress), 1);
+    ridipingi();
+    setTimeout(ridipingi, 600);
+    setTimeout(ridipingi, 2000);
   }
 
   /* L'apertura guidata dallo scroll era stata tolta il 2026-09-23, con le
@@ -1075,28 +1285,49 @@ window.SEQ = (function(){
       });
     });
 
-    /* ── mobile: niente scrub né apertura, ma i temi restano ──
-       Le sezioni chiare devono restare chiare anche senza scrub:
-       --t si commuta a gradini all'ingresso di ogni sezione. */
-    mm.add('(max-width: 900px)', ()=>{
-      state.disabled = true;               /* il canvas frame non si usa */
-      if(canvas) gsap.set(canvas, {display:'none'});
-      if(front)  gsap.set(front,  {display:'none'});
-      document.querySelectorAll('.bg__still').forEach((im,i)=>{
-        gsap.to(im, {
-          autoAlpha:1,
-          scrollTrigger:{ trigger:['#hero-spacer','#s01-arte','#s-perche'][i] || '#hero-spacer',
-                          start:'top 60%', toggleActions:'play none none reverse' }
-        });
+    /* ── mobile: la torre scende con lo scroll, il resto a gradini ──
+       Dal 2026-09-25 (committente) anche sul telefono la discesa della
+       camera è guidata dallo scroll, con lo stesso trigger del desktop,
+       e la hero se ne va come sul desktop: prima restava fissa sullo
+       schermo e si vedeva sotto tutte le sezioni.
+       Niente mattone in volo né apertura delle card: le sezioni sono a
+       contenuto, e --t si commuta a gradini all'ingresso di ognuna. */
+    mm.add('(max-width: 900px) and (prefers-reduced-motion: no-preference)', ()=>{
+      /* la discesa finisce mentre sale la 01, prima del suo testo: da lì
+         la torre sfuma e il mattone scende al suo posto (2026-09-25) */
+      ScrollTrigger.create({
+        trigger:'#hero-spacer', start:'top top',
+        endTrigger:'#s01-arte', end:'top 75%',
+        onUpdate(self){ state.target = self.progress * (FRAME_COUNT-1); tick(); }
+      });
+      gsap.fromTo(['.hero','.lockup','.corner','.grid'], {autoAlpha:1, y:0}, {
+        autoAlpha:0, y:-30, ease:'none', immediateRender:false,
+        scrollTrigger:{ trigger:'#hero-spacer', start:'25% top', end:'70% top', scrub:true }
+      });
+      /* Oltre la hero restano spenti anche se l'intro (js/hero.js) li
+         riaccende dopo: sul telefono si comincia a scorrere prima che
+         l'intro finisca, e lockup e SCORRI restavano sopra la piuma. */
+      ScrollTrigger.create({
+        trigger:'#hero-spacer', start:'70% top', end:'max',
+        toggleClass:{targets:'#stage', className:'hero-via'}
       });
       /* la virata la guida sempre applyTheme, qui a scatti */
       stepped = true;
       root.classList.add('is-stepped');
       applyTheme();
       DIA.forEach(d => d.draw(1, 0));
-      posaMattone();
-      gsap.set(['.hero','.lockup','.corner'], {clearProps:'all'});
-      return ()=>{ state.disabled = false; if(state.shown) draw(true); };
+      mattoneTelefono();
+      /* Da 02 in poi le sezioni sono trasparenti (il mattone passa sotto
+         le scritte): la torre, il suo primo piano e il velo scuro della
+         hero se ne vanno appena entra la 02, e resta il cemento. */
+      gsap.fromTo(['#seq','#seqFront','.bg__scrim'], {autoAlpha:1}, {
+        autoAlpha:0, ease:'none', immediateRender:false,
+        /* Se ne va appena la discesa è finita, mentre la 01 sale e PRIMA
+           che arrivi il suo testo: sfumando a cavallo fra 01 e 02 si
+           vedeva a lampi dietro le scritte scorrendo avanti e indietro
+           (committente, registrazione del 2026-09-25). */
+        scrollTrigger:{ trigger:'#s01-arte', start:'top 75%', end:'top 45%', scrub:true }
+      });
     });
 
     /* ── reduced-motion: tutto leggibile, niente scrub né pin ── */
@@ -1111,6 +1342,11 @@ window.SEQ = (function(){
   }
 
   function init(){
+    /* Sul telefono la torre se ne va mentre sale la 01 (initScroll,
+       'top 75%' → 'top 45%'): il cemento arriva a metà di quella
+       finestra, o sotto la torre che sfuma si vedeva la notte. */
+    const s01 = document.querySelector('#s01-arte');
+    if(s01) s01.dataset.flipSoglia = '.6';
     startLoading();
     mountDiagrams();
     if(window.gsap && window.ScrollTrigger){

@@ -152,6 +152,16 @@
    sul corpo scende a 14,9cqw e il margine cresce ancora. */
 @media (max-width:900px){
   :root{ --display-size:min(18.9vh, 14.9cqw); --hero-top:21% }
+  /* Sul telefono (2026-09-25, «si vede molto sbiadito»): i grigi del
+     cemento scendono di un tono, così titoli, etichette e testi reggono
+     anche all'aperto e su schermi meno luminosi; e il fondo della torre
+     perde il velo di contrasto che lo appiattiva. Sulla notte le
+     etichette salgono un poco. */
+  :root{
+    --ink-l:#575353; --ink2-l:#262424; --mute-l:#6F6B6B;
+    --mute-d:#8C8989;
+    --fondo-luce:1.14; --fondo-contrasto:1.04;
+  }
   [data-copia="2"]{--display-size:min(18.9vh, 10.3cqw)}
   [data-copia="3"]{--display-size:min(18.9vh, 10.4cqw)}
 }
@@ -334,15 +344,86 @@ body{
 .nav__sotto .lbl{color:var(--chrome-soft);transition:color .2s ease}
 .nav__sotto:hover .lbl,.nav__sotto:focus-visible .lbl,.nav__sotto.is-qui .lbl{color:var(--accent)}
 
-/* Sotto i 900px la fascia manda la nav a capo: una riga sola che
-   scorre di lato, senza sottomenu (Opere porta alla scelta). */
+/* Il bottone del menu esiste solo sul telefono. */
+.hd__burger{display:none}
+
+/* Sotto i 900px (committente, 2026-09-25): una fascia sola e bassa —
+   marchio a sinistra, ☰ a destra — con fondo pieno, così i titoli non
+   ci passano più dietro. Le voci stanno in un pannello a tutto schermo
+   che si apre col ☰ (js/nav.js), sottovoci delle opere comprese. */
 @media (max-width:900px){
-  .hd{flex-wrap:wrap;padding-bottom:.6rem}
-  .hd__center{position:static;transform:none;order:3;width:100%;
-              gap:1.2rem;padding-top:.7rem;overflow-x:auto;
-              scrollbar-width:none}
-  .hd__center::-webkit-scrollbar{display:none}
-  .nav__sub{display:none}
+  :root{ --hd-h:60px }
+  .hd{
+    height:var(--hd-h);padding:0 16px;align-items:center;
+    border-bottom:1px solid var(--rule);
+  }
+  /* Il fondo sfocato sta su uno pseudo-elemento e non sulla fascia: un
+     backdrop-filter sulla fascia farebbe di lei il riferimento del
+     pannello fisso del menu, e Safari su iPhone lo ritaglia lì dentro
+     (committente, 2026-09-25: «il menu a tendina non si vede»). */
+  .hd::before{
+    content:"";position:absolute;inset:0;z-index:-1;
+    background:color-mix(in srgb, var(--bg) 88%, transparent);
+    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  }
+  .hd__logo{font-size:14px;gap:9px}
+  /* salzillo e costruzioni più vicini (committente, 2026-09-25) */
+  .hd__wordmark{line-height:.92}
+  .hd__mark{width:30px}
+  .hd__right{display:none}
+
+  /* Niente flex né gap dentro il <button>: Safari su iPhone ne avvolge
+     il contenuto in un blocco interno che si stringe sul contenuto, e
+     le due righe — vuote — finivano larghe zero: il ☰ non si vedeva mai
+     (committente, 2026-09-25). Righe a misura fissa, centrate a mano. */
+  .hd__burger{
+    display:block;position:relative;flex:0 0 auto;
+    width:44px;height:44px;margin-right:-10px;padding:0;
+    background:none;border:0;border-radius:0;cursor:pointer;
+    -webkit-appearance:none;appearance:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  /* ☰ nel blu del marchio, come il simbolo accanto (2026-09-25) */
+  .hd__burger span{
+    position:absolute;left:10px;width:24px;height:2px;
+    background:var(--marchio-blu);transition:transform .3s ease;
+  }
+  .hd__burger span:first-child{top:17px}
+  .hd__burger span:last-child {top:26px}
+  .hd.is-menu .hd__burger span:first-child{transform:translateY(4.5px) rotate(45deg)}
+  .hd.is-menu .hd__burger span:last-child {transform:translateY(-4.5px) rotate(-45deg)}
+
+  .hd__center{
+    position:fixed;left:0;right:0;top:var(--hd-h);bottom:0;transform:none;
+    height:calc(100dvh - var(--hd-h));
+    display:flex;flex-direction:column;align-items:stretch;gap:0;
+    padding:24px 16px calc(24px + env(safe-area-inset-bottom));
+    background:var(--marchio-blu);overflow-y:auto;
+    opacity:0;visibility:hidden;transition:opacity .25s ease,visibility .25s;
+  }
+  .hd.is-menu .hd__center{opacity:1;visibility:visible}
+  /* Il pannello è nel blu del marchio, le voci in bianco (committente,
+     2026-09-25); la voce della sezione in cui sei è piena e sottolineata. */
+  .hd__center .nav__voce{padding:16px 0;border-bottom:1px solid rgba(255,255,255,.22)}
+  .hd__center .nav__voce .lbl{font-size:24px;letter-spacing:.02em;color:rgba(255,255,255,.72)}
+  .hd__center .nav__voce.is-qui .lbl{color:#fff}
+  .hd__center .nav__voce::after{
+    left:0;right:auto;bottom:10px;width:32px;background:#fff;
+    display:none;transform:none;
+  }
+  .hd__center .nav__voce.is-qui::after{display:block}
+  /* le sottovoci delle opere stanno sempre aperte, rientrate */
+  .hd .nav__gruppo .nav__sub{
+    position:static;transform:none;opacity:1;visibility:inherit;
+    min-width:0;padding:4px 0 12px 16px;background:none;border:0;
+    border-bottom:1px solid rgba(255,255,255,.22);
+  }
+  .nav__gruppo .nav__voce{border-bottom:0}
+  .nav__sotto{padding:10px 0}
+  .hd__center .nav__sotto .lbl{font-size:15px;color:rgba(255,255,255,.72)}
+  .hd__center .nav__sotto.is-qui .lbl{color:#fff}
+  body.menu-aperto{overflow:hidden}
+  body.menu-aperto .wa{display:none}
 }
 
 .icon-blocks{display:flex;align-items:flex-end;gap:.14cqw}

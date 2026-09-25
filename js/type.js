@@ -30,6 +30,13 @@ window.TYPE = (function(){
      a farli salire più lenti e insieme al passaggio del mattone
      (js/scroll.js → initBrick, CENTRI). */
   function finestra(el, start, end){
+    /* Sul telefono (2026-09-25) ogni testo si rivela sulla SUA posizione
+       e in una finestra corta: le finestre del desktop sono tarate su
+       capitoli pinnati alti diversi schermi e su sezioni a pagina, e qui
+       i titoli finivano di comparire quando erano già in cima. */
+    if(matchMedia('(max-width: 900px)').matches){
+      return {trigger:el, start:'top 95%', end:'top 62%'};
+    }
     const riv = el.closest('[data-rivela]');
     if(riv){
       const [s, e] = riv.dataset.rivela.split('|');
@@ -169,12 +176,18 @@ window.TYPE = (function(){
        dove quella parola è il punto d'arrivo di tutta la scena. */
     const tFine = d.igniteFine === 'ultima'
       ? (lines.length - .5) / lines.length : 1;
+    /* Sul telefono (2026-09-25) la corsa si misura sul TITOLO, non sulla
+       sezione: lì la piuma è alta quanto il suo contenuto e le soglie in
+       % della sezione del desktop non vogliono dire niente. La stessa
+       corsa la legge js/scroll.js (mattoneTelefono) per far rompere il
+       pavimento quando il pallino arriva sull'ultima riga. */
+    const telefono = d.igniteStartM && matchMedia('(max-width: 900px)').matches;
     return gsap.to(stato, {
       t:tFine, ease:'none', onUpdate:paint,
       scrollTrigger:{
-        trigger:opts.trigger || el.closest('section') || el,
-        start: d.igniteStart || opts.start || 'top 72%',
-        end:   d.igniteEnd   || opts.end   || 'bottom 68%',
+        trigger:telefono ? el : opts.trigger || el.closest('section') || el,
+        start: telefono ? d.igniteStartM : d.igniteStart || opts.start || 'top 72%',
+        end:   telefono ? d.igniteEndM   : d.igniteEnd   || opts.end   || 'bottom 68%',
         scrub:(d.igniteStart || d.igniteEnd) ? .2 : .5,
         invalidateOnRefresh:true, onRefresh:measure
       }

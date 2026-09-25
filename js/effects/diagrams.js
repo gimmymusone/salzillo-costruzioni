@@ -38,11 +38,17 @@ window.DIAGRAMS = (function(){
   function spiralRings(w,h,yLato){
     /* il centro sta in alto: sotto ci va il titolo, e la zona densa
        della spirale gli toglierebbe leggibilità */
-    const s  = Math.max(w,h) * .82;
+    /* Sulla card orizzontale del telefono (2026-09-25) il quadrato
+       grande usciva di sopra e la spirale non si leggeva: lì sta tutta
+       dentro, centrata e alta quanto i cerchi di Ristrutturazioni (circa
+       il 90% della card), e passa dietro il titolo come loro. Le card del
+       desktop sono verticali e restano come erano. */
+    const largo = w > h;
+    const s  = largo ? Math.min(w * .82, h * .88) : Math.max(w,h) * .82;
     /* Nella card il lato basso del primo quadrato cade al centro dello
        spazio fra NUOVE e COSTRUZIONI (committente, 2026-09-24): lo
        dice yLato, misurato sul titolo. Senza titolo, la proporzione. */
-    const cx = w/2, cy = yLato != null ? yLato - s/2 : h*.38;
+    const cx = w/2, cy = largo ? h/2 : yLato != null ? yLato - s/2 : h*.38;
     let pts = [
       [cx-s/2, cy-s/2], [cx+s/2, cy-s/2],
       [cx+s/2, cy+s/2], [cx-s/2, cy+s/2]
@@ -137,7 +143,8 @@ window.DIAGRAMS = (function(){
     let w=0, h=0, shapes=[];
 
     function resize(){
-      const dpr = Math.min(devicePixelRatio || 1, 2);
+      /* fino a 3 sul telefono (iPhone), come i canvas di js/scroll.js */
+      const dpr = Math.min(devicePixelRatio || 1, matchMedia('(max-width: 900px)').matches ? 3 : 2);
       w = canvas.clientWidth; h = canvas.clientHeight;
       if(!w || !h) return;
       canvas.width  = Math.round(w*dpr);

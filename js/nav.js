@@ -77,7 +77,10 @@ window.NAV = (function(){
   function vaiA(sel){
     const el = document.querySelector(sel);
     if(!el) return;
-    const y = cima(el) + (el.hasAttribute('data-pagina') ? 0 : 1);
+    /* sul telefono la fascia alta è piena e fissa: la sezione arriva
+       sotto di lei, non dietro (2026-09-25) */
+    const hdH = matchMedia('(max-width: 900px)').matches && hd ? hd.offsetHeight : 0;
+    const y = cima(el) - hdH + (el.hasAttribute('data-pagina') ? 0 : 1);
     scrollTo({top: Math.max(0, y), behavior: 'auto'});
   }
 
@@ -86,9 +89,28 @@ window.NAV = (function(){
     if(!href.startsWith('#') || href === '#') return;
     a.addEventListener('click', e=>{
       e.preventDefault();
+      menu(false);                    /* sul telefono il pannello si chiude */
       vaiA(href);
       a.blur();                       /* chiude il sottomenu tenuto dal focus */
     });
+  }
+
+  /* ── menu del telefono (2026-09-25) ──────────────────────
+     Sotto i 900px le voci stanno in un pannello a tutto schermo che
+     si apre col ☰. Mentre è aperto la pagina sotto non scorre. */
+  const hd = document.querySelector('.hd');
+  const burger = document.querySelector('.hd__burger');
+  function menu(apri){
+    if(!hd || !burger) return;
+    hd.classList.toggle('is-menu', apri);
+    document.body.classList.toggle('menu-aperto', apri);
+    burger.setAttribute('aria-expanded', apri);
+    burger.setAttribute('aria-label', apri ? 'Chiudi il menu' : 'Apri il menu');
+  }
+  if(burger){
+    burger.addEventListener('click', ()=> menu(!hd.classList.contains('is-menu')));
+    addEventListener('keydown', e=>{ if(e.key === 'Escape') menu(false); });
+    matchMedia('(min-width: 901px)').addEventListener('change', e=>{ if(e.matches) menu(false); });
   }
 
   function init(){
@@ -111,6 +133,49 @@ window.NAV = (function(){
         msg.value = `Buongiorno, vorrei informazioni sull'immobile ${a.dataset.immobile}.`;
       });
     });
+
+    /* ── caroselli del telefono (2026-09-25) ─────────────────
+       Sotto i 900px le gallerie si sfogliano di lato: il nome in alto
+       segue la foto allineata a sinistra, come sul desktop segue quella
+       al centro. Sul desktop la track non scorre mai di suo, quindi
+       questo ascoltatore lì resta muto. */
+    document.querySelectorAll('.cases-track[data-nome-out]').forEach(track=>{
+      const uscita = document.querySelector(track.dataset.nomeOut);
+      const carte = [...track.querySelectorAll('.case')];
+      if(!uscita || !carte.length) return;
+      let atteso = false;
+      track.addEventListener('scroll', ()=>{
+        if(atteso) return;
+        atteso = true;
+        requestAnimationFrame(()=>{
+          atteso = false;
+          const bordo = track.getBoundingClientRect().left;
+          let vicina = carte[0], min = Infinity;
+          for(const c of carte){
+            const d = Math.abs(c.getBoundingClientRect().left - bordo);
+            if(d < min){ min = d; vicina = c; }
+          }
+          const nome = vicina.dataset.nome || '';
+          if(uscita.textContent !== nome) uscita.textContent = nome;
+        });
+      }, {passive:true});
+    });
+
+    /* Le foto dei caroselli sono in lazy: il browser le chiede solo
+       quando stanno per entrare, e sfogliando di lato si vedevano
+       arrivare in ritardo (committente, 2026-09-25). Sul telefono, appena
+       un carosello si avvicina scorrendo in verticale, si chiedono tutte
+       le sue foto insieme: quando lo si sfoglia sono già lì. */
+    if(matchMedia('(max-width: 900px)').matches && 'IntersectionObserver' in window){
+      const io = new IntersectionObserver(voci=>{
+        voci.forEach(v=>{
+          if(!v.isIntersecting) return;
+          v.target.querySelectorAll('img[loading="lazy"]').forEach(img=>{ img.loading = 'eager'; });
+          io.unobserve(v.target);
+        });
+      }, {rootMargin:'150% 0px'});
+      document.querySelectorAll('.cases-track, .storia-track').forEach(t=> io.observe(t));
+    }
 
     misura();
     dipingi();

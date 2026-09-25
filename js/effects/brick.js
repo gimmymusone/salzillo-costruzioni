@@ -61,7 +61,15 @@ window.BRICK = (function(){
     return s;
   }
 
-  function preload(){ slot.forEach(s=>{ s.chiaro.preload(); s.scuro.preload(); }); }
+  /* soloScuro: sul telefono le sezioni del mattone sono sempre chiare e
+     la pelle chiara non si vede mai — inutile scaricarla (2026-09-25) */
+  function preload(soloScuro, filtro){
+    slot.forEach(s=>{ if(!soloScuro) s.chiaro.preload(filtro); s.scuro.preload(filtro); });
+  }
+  /* il fotogramma p (0…1) davanti a tutta la coda di caricamento */
+  function anticipa(p, soloScuro){
+    slot.forEach(s=>{ if(!soloScuro) s.chiaro.anticipa(p); s.scuro.anticipa(p); });
+  }
 
   /* p = progresso globale 0…1 dell'intero arco; luce = 0 notte, 1 cemento */
   function draw(p, luce){
@@ -103,6 +111,6 @@ window.BRICK = (function(){
   }
   addEventListener('resize', resize);
 
-  return {monta, preload, draw, opacita, resize, get slot(){ return slot; }, N};
+  return {monta, preload, anticipa, draw, opacita, resize, get slot(){ return slot; }, N};
 
 })();
