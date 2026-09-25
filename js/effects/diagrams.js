@@ -39,17 +39,16 @@ window.DIAGRAMS = (function(){
     /* il centro sta in alto: sotto ci va il titolo, e la zona densa
        della spirale gli toglierebbe leggibilità */
     /* Sulla card orizzontale del telefono (2026-09-25) il quadrato
-       grande usciva di sopra e la spirale non si leggeva: lì il lato si
-       misura sullo spazio che c'è fra la cima della card e il lato basso
-       voluto, così la figura sta tutta dentro. Le card del desktop sono
-       verticali e restano come erano. */
-    const s  = w > h
-      ? Math.min(w * .82, (yLato != null ? yLato : h * .85) - h * .08)
-      : Math.max(w,h) * .82;
+       grande usciva di sopra e la spirale non si leggeva: lì sta tutta
+       dentro, centrata e alta quanto i cerchi di Ristrutturazioni (circa
+       il 90% della card), e passa dietro il titolo come loro. Le card del
+       desktop sono verticali e restano come erano. */
+    const largo = w > h;
+    const s  = largo ? Math.min(w * .82, h * .88) : Math.max(w,h) * .82;
     /* Nella card il lato basso del primo quadrato cade al centro dello
        spazio fra NUOVE e COSTRUZIONI (committente, 2026-09-24): lo
        dice yLato, misurato sul titolo. Senza titolo, la proporzione. */
-    const cx = w/2, cy = yLato != null ? yLato - s/2 : h*.38;
+    const cx = w/2, cy = largo ? h/2 : yLato != null ? yLato - s/2 : h*.38;
     let pts = [
       [cx-s/2, cy-s/2], [cx+s/2, cy-s/2],
       [cx+s/2, cy+s/2], [cx-s/2, cy+s/2]

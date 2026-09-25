@@ -780,10 +780,12 @@ html{font-size:1.05vw}
   .todo, .case--vuota .case__posto .todo{font-size:12px}
   .corner .lbl{font-size:11px}
   .btn-accent{font-size:14px}
-  /* Safari: 100vh è l'altezza con la barra degli indirizzi NASCOSTA, e lo
-     stage fisso è alto così. Con la barra visibile il fondo dello stage
-     sta sotto la barra: lockup e angolo si alzano della differenza. */
-  .lockup, .corner{margin-bottom:calc(100lvh - 100svh)}
+  /* Safari: lo stage fisso è alto 100vh, cioè quanto lo schermo con la
+     barra degli indirizzi NASCOSTA. Lockup e angolo si alzano di quanto
+     la barra occupa in quel momento (100dvh segue la barra), così stanno
+     sempre sopra il bordo visibile e scendono con lui quando la barra si
+     nasconde — come il tasto WhatsApp. */
+  .lockup, .corner{margin-bottom:calc(100lvh - 100dvh)}
 }
 
 @media (prefers-reduced-motion:reduce){
@@ -889,10 +891,9 @@ html{font-size:1.05vw}
 .contact__foot .contact__firma:hover{color:var(--marchio-blu)}
 /* il piè di pagina lascia spazio al tasto, che altrimenti copre «© 2026» */
 .contact__foot{padding-right:4.6rem}
-/* Sul telefono il tasto si ancora in ALTO, a una distanza calcolata
-   sull'altezza piccola del viewport (barra di Safari visibile): così non
-   scende quando la barra si nasconde scorrendo, e resta fermo come
-   «[ SCORRI ]» e il lockup della hero (committente, 2026-09-25). */
+/* Sul telefono il tasto segue il bordo basso visibile: quando la barra
+   di Safari si nasconde scende con lui. Lockup e «[ SCORRI ]» della
+   hero fanno lo stesso (sotto, «rifinitura»): committente, 2026-09-25. */
 @media (max-width:900px){
-  .wa{right:16px;bottom:auto;top:calc(100svh - 16px - max(48px, 3.4rem))}
+  .wa{right:16px;bottom:calc(16px + env(safe-area-inset-bottom))}
 }
