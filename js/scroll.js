@@ -948,52 +948,65 @@ window.SEQ = (function(){
   }
 
   /* ── il mattone sul telefono (2026-09-25) ─────────────────
-     UN mattone solo, come sul desktop (committente: «sempre lo stesso
-     fino alla gravità, dietro le scritte, in maniera continua»). Sta nel
-     fondo fisso (.mattone-volo) e segue tre riquadri vuoti nelle sezioni:
-     - arriva con quello della 02, come se fosse posato lì;
-     - quando è al centro dello schermo si ferma lì, e 02 e 03 gli
-       scorrono SOPRA mentre scende piano nel bake;
-     - quando arriva il riquadro della piuma lo aggancia, si schianta
-       (0,62 = impatto, m_075) e le crepe si aprono mentre sale via con
-       la pagina, sotto GRAVITA'.
-     Tutto si legge dalle posizioni dei riquadri a ogni scroll: nessuna
-     misura in cache, quindi regge a resize e a font che arrivano tardi. */
+     UN mattone solo, nel fondo fisso (.mattone-volo), dietro le scritte
+     di 02, 03 e piuma. Seconda versione, dopo la prova sull'iPhone del
+     committente: seguire i riquadri a ogni scroll lo faceva traballare
+     (Safari muove la pagina prima che il JS sposti il livello fisso).
+     Ora la sua posizione non dipende MAI dallo scroll:
+     - quando entra la 02 scende da sopra con un'animazione a tempo e si
+       ferma quasi al centro dello schermo; da lì non si muove più, e
+       sono 02, 03 e piuma a scorrergli sopra;
+     - resta sospeso (fotogramma U0) finché non arriva il titolo della
+       piuma; poi cade mentre il pallino scende TEMPO / E, e rompe il
+       pavimento esattamente quando il pallino arriva su GRAVITA', che a
+       quel punto è già salita sopra di lui;
+     - Perché Salzillo, col suo fondo nero, gli passa sopra e lo copre.
+     Scrollando indietro oltre l'inizio della 02 risale e sparisce. */
   function mattoneTelefono(){
     const el = document.querySelector('.mattone-volo');
-    const riq = ['#s02-struttura .duo__oggetto', '#s03-finiture .duo__oggetto',
-                 '#s-piuma .piuma__oggetto'].map(q => document.querySelector(q));
-    if(!window.BRICK || !el || riq.some(r => !r)) return;
+    const titolo = document.querySelector('#s-piuma .sec-display--st');
+    const fondo = document.querySelector('#bg');
+    if(!window.BRICK || !el || !titolo || !fondo) return;
     if(!el.querySelector('canvas')) BRICK.monta(el, 0, 1);
     BRICK.preload(true);
     BRICK.opacita(1);
-    const U0 = .27, U_IMPATTO = .62, SCHIANTO = .35;   /* schermi per aprire le crepe */
-    const aggiorna = ()=>{
-      const H = riq[0].offsetHeight;
-      if(el.offsetHeight !== H) el.style.height = H + 'px';
-      const c  = (innerHeight - H) / 2;
-      const r0 = riq[0].getBoundingClientRect().top;
-      const rP = riq[2].getBoundingClientRect().top;
-      const y  = r0 > c ? r0 : rP > c ? c : rP;
-      el.style.transform = `translateY(${y}px)`;
-      el.style.visibility = (y < innerHeight && y + H > 0) ? 'visible' : 'hidden';
-      /* il bake: in volo dall'arrivo nella 02 fin sulla piuma, poi lo
-         schianto; la curva del bake fa cadere il grosso alla fine */
-      const d0 = -innerHeight * .8, D = rP - r0, d = c - r0;
-      const p = rP > c
-        ? U0 + (U_IMPATTO - U0) * clamp01((d - d0) / (D - d0))
-        : U_IMPATTO + (1 - U_IMPATTO) * clamp01((c - rP) / (innerHeight * SCHIANTO));
-      BRICK.draw(p, 1);
-    };
+
+    /* quasi al centro: a metà del fondo fisso, che è alto quanto lo
+       schermo con la barra di Safari nascosta */
+    const centro = ()=> Math.round((fondo.clientHeight - el.offsetHeight) / 2);
+    const fuori  = ()=> -el.offsetHeight;
+    gsap.set(el, {y:fuori(), autoAlpha:0});
     ScrollTrigger.create({
-      trigger:'#s02-struttura', start:'top bottom',
-      endTrigger:'#s-piuma', end:'bottom top',
-      onUpdate:aggiorna, onRefresh:aggiorna, onToggle:aggiorna
+      trigger:'#s02-struttura', start:'top 65%', end:'max',
+      onToggle(self){
+        gsap.to(el, self.isActive
+          ? {y:centro(), autoAlpha:1, duration:.9, ease:'power3.out', overwrite:true}
+          : {y:fuori(),  autoAlpha:0, duration:.5, ease:'power2.in',  overwrite:true});
+      },
+      onRefresh(self){ gsap.set(el, self.isActive ? {y:centro(), autoAlpha:1} : {y:fuori(), autoAlpha:0}); }
     });
-    aggiorna();
+
+    /* Il bake: sospeso a U0, cade fino all'impatto (0,62 = m_075) e poi
+       apre le crepe. La corsa è quella del faretto del titolo sul
+       telefono (data-ignite-*-m, js/type.js): il pallino è sull'ultima
+       riga da 3/4 della sua corsa in poi, e la corsa si ferma a 3,5/4
+       (data-ignite-fine="ultima"), cioè al 75/87,5 = 85,7% del trigger. */
+    const U0 = .27, U_IMPATTO = .62, CADE = .55, ROMPE = .75 / .875;
+    const fot = q => q < CADE  ? U0
+                   : q < ROMPE ? U0 + (U_IMPATTO - U0) * (q - CADE) / (ROMPE - CADE)
+                   : U_IMPATTO + (1 - U_IMPATTO) * Math.min(1, (q - ROMPE) / (1 - ROMPE));
+    const st = ScrollTrigger.create({
+      trigger:titolo,
+      start:titolo.dataset.igniteStartM || 'top 95%',
+      end:  titolo.dataset.igniteEndM   || 'bottom 22%',
+      onUpdate:s => BRICK.draw(fot(s.progress), 1),
+      onRefresh:s => BRICK.draw(fot(s.progress), 1)
+    });
     /* i fotogrammi arrivano in differita: si ridipinge quando ci sono */
-    setTimeout(aggiorna, 600);
-    setTimeout(aggiorna, 2000);
+    const ridipingi = ()=> BRICK.draw(fot(st.progress), 1);
+    ridipingi();
+    setTimeout(ridipingi, 600);
+    setTimeout(ridipingi, 2000);
   }
 
   /* L'apertura guidata dallo scroll era stata tolta il 2026-09-23, con le
@@ -1193,6 +1206,13 @@ window.SEQ = (function(){
         autoAlpha:0, y:-30, ease:'none', immediateRender:false,
         scrollTrigger:{ trigger:'#hero-spacer', start:'25% top', end:'70% top', scrub:true }
       });
+      /* Oltre la hero restano spenti anche se l'intro (js/hero.js) li
+         riaccende dopo: sul telefono si comincia a scorrere prima che
+         l'intro finisca, e lockup e SCORRI restavano sopra la piuma. */
+      ScrollTrigger.create({
+        trigger:'#hero-spacer', start:'70% top', end:'max',
+        toggleClass:{targets:'#stage', className:'hero-via'}
+      });
       /* la virata la guida sempre applyTheme, qui a scatti */
       stepped = true;
       root.classList.add('is-stepped');
@@ -1204,7 +1224,11 @@ window.SEQ = (function(){
          hero se ne vanno appena entra la 02, e resta il cemento. */
       gsap.fromTo(['#seq','#seqFront','.bg__scrim'], {autoAlpha:1}, {
         autoAlpha:0, ease:'none', immediateRender:false,
-        scrollTrigger:{ trigger:'#s02-struttura', start:'top bottom', end:'top 65%', scrub:true }
+        /* se ne va mentre finisce la 01, così quando entra la 02 è già
+           cemento pieno (committente, 2026-09-25: la torre si vedeva
+           ancora dietro l'inizio della 02). La sequenza è già ferma
+           sull'ultimo fotogramma a 'bottom 130%' (FINE_CON_CODA). */
+        scrollTrigger:{ trigger:'#s01-arte', start:'bottom 125%', end:'bottom 100%', scrub:true }
       });
     });
 

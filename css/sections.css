@@ -666,7 +666,10 @@ html{font-size:1.05vw}
     mask-image:linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
   }
 
-  #s-piuma .sticky{min-height:0;justify-content:flex-start}
+  /* Sotto il titolo, quasi uno schermo di cemento: è lì che il mattone
+     rompe il pavimento, con GRAVITA' già salita sopra di lui. Senza,
+     Perché Salzillo arrivava a coprirlo prima dello schianto. */
+  #s-piuma .sticky{min-height:0;justify-content:flex-start;padding-bottom:88svh}
   #s-piuma .piuma__oggetto{position:relative;width:auto}
   #s-piuma .sec-display--st{font-size:min(15vw, 4.2rem);line-height:.8;margin:8px 0 0}
   /* il faretto resta, ma le righe spente restano leggibili */
@@ -789,6 +792,8 @@ html{font-size:1.05vw}
   /* …e lo stesso per la schermata di caricamento: «46 ANNI DI CANTIERI»
      e la percentuale finivano sotto la barra (committente, 2026-09-25) */
   .preloader{padding-bottom:calc(2.5% + 100lvh - 100dvh)}
+  .stage.hero-via .hero, .stage.hero-via .lockup,
+  .stage.hero-via .corner, .stage.hero-via .grid{visibility:hidden !important}
 }
 
 @media (prefers-reduced-motion:reduce){
