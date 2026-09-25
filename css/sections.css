@@ -661,8 +661,68 @@ html{font-size:1.05vw}
   .ignite__dot{left:-12px}
 }
 
+/* ── Telefono: perché, servizi, opere (2026-09-25) ────────────
+   Stesso ritmo dei capitoli: 56px sopra e sotto, 16px ai lati. Le due
+   gallerie diventano caroselli che si sfogliano col dito — una
+   schermata ciascuna invece di quattro foto giganti in colonna — con un
+   pezzo della foto dopo che spunta a destra e il nome che segue la foto
+   in vista (js/nav.js). */
+@media (max-width:900px){
+  #s-perche{padding:0}
+  .perche{padding:56px 16px;gap:28px}
+  .perche .sec-label{margin-bottom:0}
+  .orbita{width:100%;gap:10px}
+  .orbita__titolo{font-size:min(12vw, 3.4rem);margin-bottom:14px}
+  .chip-o{padding:14px 16px}
+  .chip-o summary{font-size:15px;min-height:24px}
+  .chip-o summary b{margin:-14px -16px -14px auto;padding:14px 16px}
+  .chip-o .sec-body{font-size:14px}
+  .perche .perche__cta{font-size:13px;padding:16px 24px;width:100%;text-align:center}
+
+  .servizi{padding:56px 16px}
+  .servizi .sec-label{margin-bottom:18px}
+  .servizi__grid{grid-template-columns:1fr}
+  .svc{min-height:0;padding:18px 16px}
+  .svc__t{font-size:16px;margin-bottom:6px}
+  .svc .sec-body{font-size:14px}
+
+  #s-cases .sticky{min-height:0;padding:56px 16px}
+  .cases-choice{gap:12px}
+  .case-card{flex:none;width:100%;aspect-ratio:16/9;padding:16px}
+  .case-card__t{font-size:26px}
+  .case-card__ft .lbl{font-size:11px}
+
+  #s-cantieri .sticky, #s-ristrutturazioni .sticky{min-height:0;padding:56px 0}
+  .galleria__nome{font-size:28px;padding:0 16px;margin-bottom:16px}
+  .galleria__cat{font-size:15px;padding:0 16px;margin-top:16px}
+  .cases-track{
+    flex-direction:row;width:auto;gap:12px;padding:0 16px;
+    overflow-x:auto;overscroll-behavior-x:contain;
+    scroll-snap-type:x mandatory;scroll-padding:0 16px;
+    scrollbar-width:none;pointer-events:auto;
+  }
+  .cases-track::-webkit-scrollbar{display:none}
+  .case{flex:0 0 84%;width:auto;aspect-ratio:4/3;scroll-snap-align:start}
+  .case img{height:100%}
+}
+
 @media (prefers-reduced-motion:reduce){
   .cases-track,.storia-track{transform:none !important}
+}
+
+/* Perché Salzillo porta con sé la notte: i token vivi sono fissati qui
+   dentro, così il suo fondo è nero in ogni istante, qualunque sia --t.
+   Sul desktop serve al pannello che sale sopra la gravità (vedi sotto);
+   sul telefono evita che la sezione resti chiara e diventi nera di colpo
+   a metà lettura, quando --t scatta (2026-09-25: stava solo nel desktop). */
+#s-perche{
+  --paper:var(--paper-d);--sunk:var(--sunk-d);--lift:var(--lift-d);
+  --ink:var(--ink-d);--ink2:var(--ink2-d);--mute:var(--mute-d);--max:var(--max-d);
+  --rule:var(--rule-d);--divider:var(--div-d);
+  --bg:var(--paper);--surface-1:var(--sunk);--surface-2:var(--lift);
+  --text-display:var(--ink);--text-bright:var(--ink2);--text-muted:var(--mute);
+  --text-max:var(--max);--divider-solid:var(--divider);
+  background:var(--paper-d);
 }
 
 /* ── Pagine: da "perché Salzillo" ai contatti (2026-09-23) ────────
@@ -683,16 +743,7 @@ html{font-size:1.05vw}
   /* Il pannello porta con sé la notte: i token vivi sono fissati qui
      dentro, così il tema della pagina (--t) può virare solo a pannello
      arrivato, e il cemento ancora scoperto sopra non passa dal grigio. */
-  #s-perche{
-    margin-top:-100vh;position:relative;z-index:1;
-    --paper:var(--paper-d);--sunk:var(--sunk-d);--lift:var(--lift-d);
-    --ink:var(--ink-d);--ink2:var(--ink2-d);--mute:var(--mute-d);--max:var(--max-d);
-    --rule:var(--rule-d);--divider:var(--div-d);
-    --bg:var(--paper);--surface-1:var(--sunk);--surface-2:var(--lift);
-    --text-display:var(--ink);--text-bright:var(--ink2);--text-muted:var(--mute);
-    --text-max:var(--max);--divider-solid:var(--divider);
-    background:var(--paper-d);
-  }
+  #s-perche{margin-top:-100vh;position:relative;z-index:1}
   [data-pagina] > .sticky, .perche, .servizi, .contact, .vendita{
     position:relative;top:auto;height:100vh;min-height:0;
   }

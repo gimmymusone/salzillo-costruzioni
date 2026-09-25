@@ -77,7 +77,10 @@ window.NAV = (function(){
   function vaiA(sel){
     const el = document.querySelector(sel);
     if(!el) return;
-    const y = cima(el) + (el.hasAttribute('data-pagina') ? 0 : 1);
+    /* sul telefono la fascia alta è piena e fissa: la sezione arriva
+       sotto di lei, non dietro (2026-09-25) */
+    const hdH = matchMedia('(max-width: 900px)').matches && hd ? hd.offsetHeight : 0;
+    const y = cima(el) - hdH + (el.hasAttribute('data-pagina') ? 0 : 1);
     scrollTo({top: Math.max(0, y), behavior: 'auto'});
   }
 
@@ -129,6 +132,33 @@ window.NAV = (function(){
         if(!msg) return;
         msg.value = `Buongiorno, vorrei informazioni sull'immobile ${a.dataset.immobile}.`;
       });
+    });
+
+    /* ── caroselli del telefono (2026-09-25) ─────────────────
+       Sotto i 900px le gallerie si sfogliano di lato: il nome in alto
+       segue la foto allineata a sinistra, come sul desktop segue quella
+       al centro. Sul desktop la track non scorre mai di suo, quindi
+       questo ascoltatore lì resta muto. */
+    document.querySelectorAll('.cases-track[data-nome-out]').forEach(track=>{
+      const uscita = document.querySelector(track.dataset.nomeOut);
+      const carte = [...track.querySelectorAll('.case')];
+      if(!uscita || !carte.length) return;
+      let atteso = false;
+      track.addEventListener('scroll', ()=>{
+        if(atteso) return;
+        atteso = true;
+        requestAnimationFrame(()=>{
+          atteso = false;
+          const bordo = track.getBoundingClientRect().left;
+          let vicina = carte[0], min = Infinity;
+          for(const c of carte){
+            const d = Math.abs(c.getBoundingClientRect().left - bordo);
+            if(d < min){ min = d; vicina = c; }
+          }
+          const nome = vicina.dataset.nome || '';
+          if(uscita.textContent !== nome) uscita.textContent = nome;
+        });
+      }, {passive:true});
     });
 
     misura();
