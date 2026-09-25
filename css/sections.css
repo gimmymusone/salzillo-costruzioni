@@ -706,6 +706,56 @@ html{font-size:1.05vw}
   .case img{height:100%}
 }
 
+/* ── Telefono: in vendita, storia, contatti (2026-09-25) ──────
+   In vendita resta una colonna di schede, più compatte. La storia
+   diventa un carosello come le gallerie: undici opere in una schermata
+   invece di sei. Nei contatti il piè di pagina va in colonna e lascia
+   posto al tasto WhatsApp, e i campi hanno 16px: sotto, Safari su
+   iPhone ingrandisce la pagina a ogni tocco su un campo. */
+@media (max-width:900px){
+  .vendita{padding:56px 16px}
+  .vendita .sec-label--cases{padding:0}
+  .vendita .sec-display--sm{font-size:min(11vw, 3rem);margin-bottom:0}
+  .vendita__grid{gap:16px;margin-top:20px}
+  .imm__foto{aspect-ratio:16/9}
+  .imm__t{font-size:18px;padding:16px 16px 10px}
+  .imm__dati{gap:12px;padding:0 16px 16px}
+  .imm__dati dt{font-size:11px}
+  .imm__v{font-size:15px}
+  .imm__cta{font-size:13px;padding:16px;min-height:48px}
+
+  #s-storia .sticky{min-height:0;padding:56px 0}
+  #s-storia .sec-label{padding:0 16px;margin-bottom:18px}
+  .storia-track{
+    flex-direction:row;width:auto;gap:12px;padding:0 16px;
+    overflow-x:auto;overscroll-behavior-x:contain;
+    scroll-snap-type:x mandatory;scroll-padding:0 16px;
+    scrollbar-width:none;pointer-events:auto;
+  }
+  .storia-track::-webkit-scrollbar{display:none}
+  .tappa{flex:0 0 78%;width:auto;padding-bottom:16px;scroll-snap-align:start}
+  .tappa__foto{margin-bottom:14px}
+  .tappa > :not(.tappa__foto){padding:0 16px}
+  .tappa__anno{font-size:40px;margin-bottom:8px}
+  .tappa__luogo{font-size:16px}
+  .tappa__tipo{font-size:11px}
+
+  .contact{padding:56px 16px 24px}
+  .contact .sec-display--sm{font-size:min(14vw, 4rem);margin-bottom:0}
+  .contact__cols{gap:36px;padding:28px 0}
+  .contact__block .lbl{font-size:11px;margin:24px 0 8px}
+  .contact__block .sec-body{font-size:16px}
+  .contact__link{display:inline-block;padding:4px 0}
+  .contact__form{max-width:none}
+  .contact__form .lbl{font-size:11px;margin:18px 0 6px}
+  .contact__form input,.contact__form textarea{font-size:16px;padding:10px 0}
+  .contact__form .btn-accent{width:100%;margin-top:24px;padding:16px}
+  .contact__foot{
+    flex-direction:column;gap:8px;padding-right:0;
+    padding-bottom:calc(72px + env(safe-area-inset-bottom));
+  }
+}
+
 @media (prefers-reduced-motion:reduce){
   .cases-track,.storia-track{transform:none !important}
 }
@@ -809,4 +859,4 @@ html{font-size:1.05vw}
 .contact__foot .contact__firma:hover{color:var(--marchio-blu)}
 /* il piè di pagina lascia spazio al tasto, che altrimenti copre «© 2026» */
 .contact__foot{padding-right:4.6rem}
-@media (max-width:900px){ .wa{right:1rem;bottom:1rem} }
+@media (max-width:900px){ .wa{right:16px;bottom:calc(16px + env(safe-area-inset-bottom))} }

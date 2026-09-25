@@ -699,16 +699,18 @@ window.SEQ = (function(){
     /* #s-via non esiste più (tolta il 2026-09-23): il suo posto in
        pagina è ora il top di #s02-struttura, quindi le soglie restano
        le stesse e i due trigger cambiano solo nome. */
-    /* Le prime tre coppie solo sul desktop (2026-09-25): le soglie sono
+    /* Tutte le coppie solo sul desktop (2026-09-25): le soglie sono
        tarate su capitoli alti 350–400vh, e sul telefono — dove i
        capitoli sono alti quanto il loro testo — la sezione dopo arriva
        al 160% dello schermo mentre la precedente è appena entrata, e il
        testo spariva prima di essere letto. */
-    const congedi = [['#s-storia', '#s-vendita .vendita', 'top bottom','top 78%', 'all']]
-      .concat([['#s02-struttura','#s01-arte .sticky',     'top 160%','top 120%'],
-               ['#s03-finiture','#s02-struttura .sticky','top 220%','top 175%'],
-               ['#s-piuma',     '#s03-finiture .sticky', 'top 220%','top 175%']]
-               .map(c => c.concat('(min-width: 901px)')));
+    /* Anche il congedo di "in vendita": sul telefono le schede sono in
+       colonna e l'ultima sfumava mentre la si stava ancora leggendo. */
+    const congedi = [['#s02-struttura','#s01-arte .sticky',     'top 160%','top 120%'],
+                     ['#s03-finiture','#s02-struttura .sticky','top 220%','top 175%'],
+                     ['#s-piuma',     '#s03-finiture .sticky', 'top 220%','top 175%'],
+                     ['#s-storia',    '#s-vendita .vendita',   'top bottom','top 78%']]
+      .map(c => c.concat('(min-width: 901px)'));
     const mmCongedi = gsap.matchMedia();
     congedi.forEach(([entra, esce, start, end, media])=>{
       if(!document.querySelector(esce) || !document.querySelector(entra)) return;
