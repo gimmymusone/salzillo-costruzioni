@@ -63,26 +63,52 @@ window.HERO = (function(){
     stage.classList.remove('is-intro');
   }
 
+  /* Il numero mostrato insegue quello vero senza scatti e non torna mai
+     indietro; almeno ATTESA_MIN secondi, perché la linea che si disegna
+     è parte della coreografia anche con la rete veloce. */
+  const ATTESA_MIN = 1.6, ATTESA_MAX = 30;
+  function attendiCarico(counter, via){
+    const t0 = performance.now();
+    const dipingi = ()=>{
+      gsap.set(preRule, {width: counter.v + '%'});
+      prePct.textContent = Math.round(counter.v) + '%';
+    };
+    const passo = ()=>{
+      const sec = (performance.now() - t0) / 1000;
+      const vero = window.CARICO ? CARICO.quanto() : 1;
+      const tetto = Math.min(100, vero * 100, sec / ATTESA_MIN * 100);
+      counter.v = Math.max(counter.v, counter.v + (tetto - counter.v) * .12);
+      if(tetto >= 100 && counter.v > 99.5) counter.v = 100;
+      dipingi();
+      if(counter.v >= 100 || sec >= ATTESA_MAX){
+        gsap.ticker.remove(passo);
+        if(counter.v >= 100){ via(); return; }
+        /* scaduto il tempo: si chiude la linea e si parte comunque */
+        gsap.to(counter, {v:100, duration:.4, ease:EASE_IO, onUpdate:dipingi, onComplete:via});
+      }
+    };
+    gsap.ticker.add(passo);
+  }
+
   function build(){
     const counter = {v:0};
 
     tl = gsap.timeline({defaults:{ease:EASE_OUT}});
 
-    /* ── 1. caricamento: la linea si disegna, il contatore sale ── */
-    tl.to(preRule,  {width:'100%', duration:2.0, ease:EASE_IO}, 0)
-      .to(counter, {
-        v:100, duration:2.0, ease:EASE_IO,
-        onUpdate(){ prePct.textContent = Math.round(counter.v) + '%'; }
-      }, 0)
-
-      /* il preloader non si congeda finché il primo frame non c'è
-         (o finché non scade il timeout: senza frame si prosegue) */
-      .add(()=>{
-        if(window.SEQ && !SEQ.ready){
-          tl.pause();
-          SEQ.whenReady(()=>tl.play(), 8000);
-        }
-      })
+    /* ── 1. caricamento: la linea si disegna, il contatore sale ──
+       Dal 2026-09-26 contatore e linea dicono il VERO: la frazione dei
+       file arrivati (CARICO, js/scroll.js). Il preloader resta finché
+       non c'è tutto quello che si vede scorrendo, così con poca rete
+       non si incontrano più immagini mancanti; al massimo ATTESA_MAX,
+       poi si parte e il resto continua ad arrivare in sottofondo. */
+    tl.add(()=>{
+      if(tl.reversed() || matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+      tl.pause();
+      attendiCarico(counter, ()=>{
+        tl.play();
+        if(window.PROGETTI) PROGETTI.precarica();
+      });
+    })
 
       /* ── 2. il fondo vira allo scuro; la linea resta ── */
       .to(preloader, {backgroundColor:'#0F0F0F', duration:.9, ease:EASE_IO}, '+=0.15')
@@ -138,7 +164,10 @@ window.HERO = (function(){
        sec 8». La timeline è scritta in tempi relativi, quindi invece di
        ritoccare venti durate a mano si riscala tutta in blocco. */
     const DURATA_OBIETTIVO = 8.0;
-    if(tl.duration() > 0) tl.timeScale(tl.duration() / DURATA_OBIETTIVO);
+    /* +2,0: i secondi del vecchio contatore a tempo fisso. L'attesa ora
+       sta fuori dalla timeline, e senza questo il resto dell'intro
+       rallenterebbe per riempire gli otto secondi. */
+    if(tl.duration() > 0) tl.timeScale((tl.duration() + 2.0) / DURATA_OBIETTIVO);
 
     return tl;
   }

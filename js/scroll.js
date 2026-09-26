@@ -32,10 +32,13 @@
    che arrivano per ultime: senza, il titolo resta semplicemente
    davanti, ed è una mancanza che non si nota). */
 window.CODA = (function(){
-  const MAX = 6;
+  const MAX = 8;
   const cache = new Map();          /* url → {im, fatto, ok, cbs} */
   const file  = [[], [], []];
   let attivi  = 0;
+  /* quanti file sono stati chiesti e quanti sono arrivati (o falliti):
+     il preloader ne legge la percentuale (CARICO, qui sotto) */
+  let chiesti = 0, arrivati = 0;
 
   function pompa(){
     while(attivi < MAX){
@@ -46,7 +49,7 @@ window.CODA = (function(){
       e.partito = true;
       const im = new Image();
       const fine = ok=>{
-        attivi--;
+        attivi--; arrivati++;
         e.fatto = true; e.ok = ok; e.im = ok ? im : null;
         e.cbs.splice(0).forEach(cb=>cb(e.im));
         pompa();
@@ -72,6 +75,7 @@ window.CODA = (function(){
       return;
     }
     cache.set(url, e = {im:null, fatto:false, ok:false, cbs:[cb]});
+    chiesti++;
     if(prio < 0) file[0].unshift(url);
     else file[Math.min(Math.max(prio|0, 0), file.length - 1)].push(url);
     pompa();
@@ -90,7 +94,23 @@ window.CODA = (function(){
     return out;
   }
 
-  return { prendi, ordine };
+  return { prendi, ordine, stato: ()=>({chiesti, arrivati}) };
+})();
+
+/* ── il caricamento iniziale (committente, 2026-09-26) ──────
+   Con poca rete, scorrendo, alcune immagini non c'erano ancora. Ora il
+   preloader (js/hero.js) aspetta TUTTO quello che la pagina mostra
+   scorrendo: i fotogrammi in coda (torre, silhouette, mattone) e le foto
+   delle gallerie e della storia, che per questo non sono più in lazy.
+   quanto() è la frazione arrivata, 0…1, contata a file. */
+window.CARICO = (function(){
+  const foto = ()=> [...document.querySelectorAll('.cases-track img, .storia-track img')];
+  function quanto(){
+    const c = CODA.stato(), f = foto();
+    const tot = c.chiesti + f.length;
+    return tot ? (c.arrivati + f.filter(i => i.complete).length) / tot : 1;
+  }
+  return { quanto };
 })();
 
 /* Pixel per punto dei canvas. Sul desktop resta il tetto di 2; sul

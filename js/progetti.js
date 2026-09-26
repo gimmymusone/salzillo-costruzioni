@@ -20,7 +20,7 @@ window.PROGETTI = (function(){
 
   const DC = '[DA CONFERMARE]';
   const foto = (cartella, n) =>
-    Array.from({length:n}, (_, i) => `assets/cantieri/${cartella}/${String(i + 1).padStart(2, '0')}.jpg`);
+    Array.from({length:n}, (_, i) => `assets/cantieri/${cartella}/${String(i + 1).padStart(2, '0')}.webp`);
 
   const NUOVE = 'Nuove costruzioni', RISTR = 'Ristrutturazioni';
   const DATI = {
@@ -121,6 +121,13 @@ window.PROGETTI = (function(){
   const iniziale = daHash();
   if(iniziale && DATI[iniziale]){ diretta = true; mostra(iniziale); }
 
-  return { DATI, apri:mostra, chiudi };
+  /* Finito il preloader, le foto grandi delle schede si scaricano in
+     coda, dopo tutto il resto: quando si apre una scheda ci sono già. */
+  function precarica(){
+    if(!window.CODA) return;
+    Object.values(DATI).forEach(p => p.foto.forEach(src => CODA.prendi(src, 2, ()=>{})));
+  }
+
+  return { DATI, apri:mostra, chiudi, precarica };
 
 })();
