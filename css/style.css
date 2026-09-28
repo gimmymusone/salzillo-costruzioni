@@ -151,7 +151,9 @@
    16,5cqw teneva il margine per il side bearing del glifo; col −10%
    sul corpo scende a 14,9cqw e il margine cresce ancora. */
 @media (max-width:900px){
-  :root{ --display-size:min(18.9vh, 14.9cqw); --hero-top:21% }
+  /* +10% il 2026-09-28 (committente: «ingrandisci la scritta della
+     hero»): 16,4cqw resta sotto il tetto di 16,96 del nowrap. */
+  :root{ --display-size:min(20.8vh, 16.4cqw); --hero-top:21% }
   /* Sul telefono (2026-09-25, «si vede molto sbiadito»): i grigi del
      cemento scendono di un tono, così titoli, etichette e testi reggono
      anche all'aperto e su schermi meno luminosi; e il fondo della torre
@@ -224,6 +226,9 @@ body{
 /* la correzione sta sul canvas, non nel disegno: ctx.filter costerebbe
    a ogni frame dello scrub, qui la paga la GPU una volta sola */
 #seq, #seqFront{opacity:0;filter:brightness(var(--fondo-luce)) contrast(var(--fondo-contrasto))}
+/* in WebGL (js/effects/nitido.js) luce e contrasto sono già nello
+   shader: il filtro qui li applicherebbe due volte */
+#seq.is-gl, #seqFront.is-gl{filter:none}
 /* Il primo piano deve stare SOPRA la hero (z 2) e sotto gli angoli (3),
    che sono chrome e non vanno mai coperti: stesso z, ma prima nel DOM.
    Sopra l'header (5) non ci arriva mai. Stesso filtro del fondo, o i

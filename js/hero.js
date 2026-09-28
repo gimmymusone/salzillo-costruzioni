@@ -66,22 +66,40 @@ window.HERO = (function(){
   function build(){
     const counter = {v:0};
 
+    /* Il contatore e la linea sono REALI dal 2026-09-28: seguono i file
+       arrivati (CODA.progresso, js/scroll.js), e l'animazione di 2 s fa
+       solo da passo minimo. Non tornano mai indietro. */
+    const reale = ()=> window.CODA ? CODA.progresso() : 1;
+    let mostrato = -1;
+    const mostra = ()=>{
+      const v = Math.min(counter.v, reale());
+      if(v <= mostrato) return;
+      mostrato = v;
+      prePct.textContent = Math.round(v * 100) + '%';
+      preRule.style.width = (v * 100) + '%';
+    };
+
     tl = gsap.timeline({defaults:{ease:EASE_OUT}});
 
     /* ── 1. caricamento: la linea si disegna, il contatore sale ── */
-    tl.to(preRule,  {width:'100%', duration:2.0, ease:EASE_IO}, 0)
-      .to(counter, {
-        v:100, duration:2.0, ease:EASE_IO,
-        onUpdate(){ prePct.textContent = Math.round(counter.v) + '%'; }
-      }, 0)
+    tl.to(counter, {v:1, duration:2.0, ease:EASE_IO, onUpdate:mostra}, 0)
 
-      /* il preloader non si congeda finché il primo frame non c'è
-         (o finché non scade il timeout: senza frame si prosegue) */
+      /* Il preloader non si congeda finché non è arrivato TUTTO: torre,
+         silhouette, mattone e foto della pagina, su PC come sul telefono
+         (committente, 2026-09-28). Prima aspettava solo il primo frame e
+         uno ogni 8. Dopo 45 s si parte comunque: il resto continua a
+         caricare dietro. */
       .add(()=>{
-        if(window.SEQ && !SEQ.ready){
-          tl.pause();
-          SEQ.whenReady(()=>tl.play(), 8000);
-        }
+        if(!window.CODA || reale() >= 1) return;
+        tl.pause();
+        const giro = setInterval(mostra, 100);
+        CODA.tutto(()=>{
+          clearInterval(giro);
+          counter.v = 1; mostrato = -1;
+          prePct.textContent = '100%';
+          preRule.style.width = '100%';
+          tl.play();
+        }, 45000);
       })
 
       /* ── 2. il fondo vira allo scuro; la linea resta ── */
