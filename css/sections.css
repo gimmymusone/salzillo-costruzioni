@@ -17,7 +17,9 @@ html{font-size:1.05vw}
 /* summary: le voci di Perché Salzillo si aprono col + (non erano cliccabili) */
 #page a, #page button, #page input, #page textarea, #page summary, #page .contact{pointer-events:auto}
 
-#hero-spacer{height:300vh}
+/* 180vh e non più 300 (2026-09-28, «troppo a rilento»): la discesa
+   della torre ora chiede ~3,8 schermate invece di ~5,7 */
+#hero-spacer{height:180vh}
 
 /* Capitolo pinnato: il contenuto tiene mentre il fondo evolve */
 .chapter{height:400vh}

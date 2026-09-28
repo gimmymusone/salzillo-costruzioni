@@ -36,6 +36,11 @@ window.CODA = (function(){
   const cache = new Map();          /* url → {im, fatto, ok, cbs} */
   const file  = [[], [], []];
   let attivi  = 0;
+  /* Quanti file sono stati chiesti e quanti sono arrivati (anche con
+     errore: un file mancante non deve tenere fermo il sito). Il
+     preloader aspetta che i due numeri coincidano (js/hero.js). */
+  let richiesti = 0, finiti = 0;
+  const attese = [];
 
   function pompa(){
     while(attivi < MAX){
@@ -48,8 +53,10 @@ window.CODA = (function(){
       const fine = ok=>{
         attivi--;
         e.fatto = true; e.ok = ok; e.im = ok ? im : null;
+        finiti++;
         e.cbs.splice(0).forEach(cb=>cb(e.im));
         pompa();
+        if(finiti >= richiesti) attese.splice(0).forEach(f=>f());
       };
       im.onload  = ()=>fine(true);
       im.onerror = ()=>fine(false);
@@ -72,6 +79,7 @@ window.CODA = (function(){
       return;
     }
     cache.set(url, e = {im:null, fatto:false, ok:false, cbs:[cb]});
+    richiesti++;
     if(prio < 0) file[0].unshift(url);
     else file[Math.min(Math.max(prio|0, 0), file.length - 1)].push(url);
     pompa();
@@ -90,7 +98,20 @@ window.CODA = (function(){
     return out;
   }
 
-  return { prendi, ordine };
+  /* 0…1: la parte di file già arrivata */
+  const progresso = ()=> richiesti ? finiti / richiesti : 1;
+
+  /* cb quando è arrivato tutto quello che è in coda, o allo scadere
+     del timeout (su rete pessima il sito parte comunque) */
+  function tutto(cb, timeout){
+    let fatto = false;
+    const una = ()=>{ if(!fatto){ fatto = true; cb(); } };
+    if(finiti >= richiesti) return una();
+    attese.push(una);
+    if(timeout) setTimeout(una, timeout);
+  }
+
+  return { prendi, ordine, progresso, tutto };
 })();
 
 /* Pixel per punto dei canvas. Sul desktop resta il tetto di 2; sul
@@ -181,9 +202,14 @@ window.SEQ = (function(){
   const mattePath = i => `assets/matte/f_${String(i+1).padStart(3,'0')}.webp?v=${MATTE_VER}`;
 
   const canvas = document.getElementById('seq');
-  const ctx    = canvas ? canvas.getContext('2d') : null;
+  /* Il fondo passa da WebGL quando c'è (js/effects/nitido.js: più
+     nitido, luce e contrasto nello shader); altrimenti il 2D di prima.
+     Un canvas ha un contesto solo: si prova prima il WebGL. */
+  const gl     = canvas && window.NITIDO ? NITIDO.crea(canvas) : null;
+  const ctx    = canvas && !gl ? canvas.getContext('2d') : null;
   const front  = document.getElementById('seqFront');
   const fctx   = front ? front.getContext('2d') : null;
+  if(gl && front) front.classList.add('is-gl');   /* il filtro è già nel fondo che ricopia */
 
   const images = new Array(FRAME_COUNT).fill(null);
   const mattes = new Array(MATTE_COUNT).fill(null);
@@ -313,7 +339,7 @@ window.SEQ = (function(){
   }
 
   function draw(force){
-    if(!ctx || state.loadFailed || state.disabled) return;
+    if((!ctx && !gl) || state.loadFailed || state.disabled) return;
     const idx = Math.round(state.prog);
     const j = nearestIdx(idx);
     if(j < 0) return;
@@ -338,14 +364,17 @@ window.SEQ = (function(){
     const m = metrics(im, j);
 
     if(fondoNuovo){
-      ctx.setTransform(dpr,0,0,dpr,0,0);
-      ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(im, m.dx, m.dy, im.width*m.s, im.height*m.s);
+      if(gl) gl.disegna(im, m, dpr);
+      else {
+        ctx.setTransform(dpr,0,0,dpr,0,0);
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(im, m.dx, m.dy, im.width*m.s, im.height*m.s);
+      }
       state.drawn = idx;
-      if(DEBUG) drawDebugRing(m, im);
     }
 
     drawFront(j, m, dpr, b);
+    if(DEBUG) drawDebugRing(m, im);
   }
 
   /* ── il palazzo in primo piano ────────────────────────────
@@ -371,9 +400,16 @@ window.SEQ = (function(){
        in cui il ritaglio ci sarebbe davvero. */
     if(!b && j < BUCO_FINO_A && document.querySelector('.display .su')) return;
     const im = images[j];
+    /* In WebGL il palazzo si ricopia dal fondo già elaborato, pixel per
+       pixel: stessa nitidezza e stessa luce, o davanti e dietro
+       sarebbero due torri diverse. */
+    if(gl){
+      fctx.setTransform(1,0,0,1,0,0);
+      fctx.drawImage(canvas, 0, 0);
+    }
     fctx.setTransform(dpr,0,0,dpr,0,0);
     fctx.imageSmoothingQuality = 'high';
-    fctx.drawImage(im, m.dx, m.dy, im.width*m.s, im.height*m.s);
+    if(!gl) fctx.drawImage(im, m.dx, m.dy, im.width*m.s, im.height*m.s);
     fctx.globalCompositeOperation = 'destination-in';
     /* con le misure del FONDO, non con le proprie: anche se un giorno
        le silhouette fossero a un'altra risoluzione, resterebbero
@@ -509,6 +545,9 @@ window.SEQ = (function(){
      dedurlo dal risultato. */
   function drawDebugRing(m, im){
     const r = frameToScreen();
+    const ctx = fctx;
+    if(!ctx) return;
+    ctx.setTransform(densita(),0,0,densita(),0,0);
     ctx.strokeStyle = 'rgba(255,0,80,.8)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
@@ -518,9 +557,15 @@ window.SEQ = (function(){
 
   /* ── loop: lerp del progresso ────────────────────────────── */
   let raf = null;
+  /* Inseguimento a tempo e non a fotogramma (2026-09-28, «troppo
+     lento»): prima era .16 per giro di rAF, gommoso a 60 Hz e più
+     rapido a 144. Qui .30 ogni 16,7 ms su qualunque schermo. */
+  const INSEGUE = .30;
   function loop(){
-    state.lastTick = performance.now();
-    state.prog += (state.target - state.prog) * .16;
+    const ora = performance.now();
+    const dt  = Math.min(100, ora - (state.lastTick || ora));
+    state.lastTick = ora;
+    state.prog += (state.target - state.prog) * (1 - Math.pow(1 - INSEGUE, dt / 16.7));
     if(Math.abs(state.target - state.prog) < .02) state.prog = state.target;
     draw();
     raf = requestAnimationFrame(loop);
@@ -1202,9 +1247,14 @@ window.SEQ = (function(){
       /* master: il viaggio si compie tra la hero e la fine della 01 —
          corsa breve = camera rapida. Poi i frame restano fermi
          sull'ultimo e sopra entra la piuma (come nel reference). */
+      /* Corsa accorciata il 2026-09-28 («nella hero va troppo a
+         rilento»): #hero-spacer da 300 a 180vh e la discesa finisce al
+         75% della 01 invece che in coda: da ~5,7 a ~3,8 schermate di
+         rotellina. Per il resto della 01 la torre resta sull'ultimo
+         fotogramma, come faceva già nella coda. */
       ScrollTrigger.create({
         trigger:'#hero-spacer', start:'top top',
-        endTrigger:'#s01-arte', end:FINE_CON_CODA,
+        endTrigger:'#s01-arte', end:'75% bottom',
         onUpdate(self){ state.target = self.progress * (FRAME_COUNT-1); tick(); }
       });
 
@@ -1349,6 +1399,14 @@ window.SEQ = (function(){
     const s01 = document.querySelector('#s01-arte');
     if(s01) s01.dataset.flipSoglia = '.6';
     startLoading();
+    /* Le foto della pagina entrano nella stessa coda (priorità 2, dopo
+       torre e mattone): il sito parte quando ci sono anche loro
+       (committente, 2026-09-28), e le <img loading="lazy"> poi le
+       trovano già in cache. */
+    document.querySelectorAll('#page img[loading="lazy"]').forEach(im=>{
+      const url = im.currentSrc || im.src;
+      if(url) CODA.prendi(url, 2, ()=>{});
+    });
     mountDiagrams();
     if(window.gsap && window.ScrollTrigger){
       gsap.registerPlugin(ScrollTrigger);
