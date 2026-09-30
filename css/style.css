@@ -1,0 +1,513 @@
+/* ══════════════════════════════════════════════════════════════
+   Salzillo Costruzioni — hero
+   Sistema ripreso da composites.archi (vedi ../references/DESIGN.md)
+   Font: TASA Orbiter — lo stesso della reference. Local Remote,
+   SIL Open Font License, distribuita su Google Fonts.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Palette: due stati, una sola manopola ────────────────────
+   --t è il quadrante del giorno: 0 = notte (#0F0F0F), 1 = cemento
+   (#CEC9C9). Ogni token è un color-mix fra i due estremi, quindi
+   basta scrubbare --t sullo scroll perché fondo, testi, righelli e
+   bordi virino *insieme* e in modo continuo — nessuno stacco, come
+   nella reference. L'accento è l'unica costante: non vira mai. Era
+   l'arancio della reference; dal 2026-09-23 è il blu del marchio.
+   La regia di --t sta in js/scroll.js (initTheme). */
+@property --t{ syntax:'<number>'; inherits:true; initial-value:0 }
+
+:root{
+  --t:0;
+  --mix:calc(var(--t) * 100%);
+
+  /* estremi: notte ─┬─ cemento */
+  --paper-d:#0F0F0F;              --paper-l:#CEC9C9;
+  --sunk-d:#131313;               --sunk-l:#C6C1C1;
+  --lift-d:#1C1C1C;               --lift-l:#BFBABA;
+  --ink-d:#AEAAAA;                --ink-l:#6E6A6A;
+  --ink2-d:#CEC9C9;               --ink2-l:#3A3838;
+  --mute-d:#7A7878;               --mute-l:#8F8B8B;
+  --max-d:#FFFFFF;                --max-l:#0F0F0F;
+  --rule-d:rgba(255,255,255,.10); --rule-l:rgba(0,0,0,.14);
+  --div-d:#3D3D3D;                --div-l:#A9A4A4;
+
+  /* valori vivi */
+  --paper:  color-mix(in srgb, var(--paper-l) var(--mix), var(--paper-d));
+  --sunk:   color-mix(in srgb, var(--sunk-l)  var(--mix), var(--sunk-d));
+  --lift:   color-mix(in srgb, var(--lift-l)  var(--mix), var(--lift-d));
+  --ink:    color-mix(in srgb, var(--ink-l)   var(--mix), var(--ink-d));
+  --ink2:   color-mix(in srgb, var(--ink2-l)  var(--mix), var(--ink2-d));
+  --mute:   color-mix(in srgb, var(--mute-l)  var(--mix), var(--mute-d));
+  --max:    color-mix(in srgb, var(--max-l)   var(--mix), var(--max-d));
+  --rule:   color-mix(in srgb, var(--rule-l)  var(--mix), var(--rule-d));
+  --divider:color-mix(in srgb, var(--div-l)   var(--mix), var(--div-d));
+
+  /* accento: identico alla reference, unico colore della pagina */
+  --marchio-blu:#4A6C93;       /* il blu istituzionale di assets/logo/marchio.svg */
+  /* Accento = blu del marchio (committente, 2026-09-23: «cambia tutti i
+     dettagli in arancio con lo stesso blu»). Era #F18010 / #FF8300. */
+  --accent:var(--marchio-blu);
+  --accent-hi:#5B80AA;
+  --accent-ink:#FFFFFF;        /* testo sopra l'accento: il nero sul blu non si leggeva */
+  --brand-blu:#3A7CB8;         /* resta solo dentro il marchio */
+
+  /* Le due facce del faretto del capitolo piuma. In img-17 la riga
+     in corso è scura e leggibile, le altre — sia quelle già passate
+     sia quelle non ancora raggiunte — stanno a un passo dal fondo:
+     è quel contrasto a far leggere il movimento, non l'accensione.
+     La riga accesa resta un nero fisso e NON vira: è il trucco della
+     reference — sulla notte sparisce quasi del tutto e riemerge man
+     mano che arriva il cemento. Se virasse coi token vivi, a metà
+     strada avrebbe lo stesso valore del fondo e il titolo sparirebbe
+     per un attimo (verificato su cattura: succede davvero).
+     La riga spenta invece insegue il fondo, così resta a un soffio
+     da esso in ogni istante della virata. */
+  --ignite-off:color-mix(in srgb, #0F0F0F 14%, var(--paper));
+  --ignite-on:#0F0F0F;
+
+  /* Stesso problema, altra soluzione, per l'interfaccia di bordo
+     (logo, nav, micro-etichette): quella deve restare leggibile in
+     *ogni* istante, quindi non attraversa i grigi intermedi — scatta
+     di netto quando il fondo supera la metà. La commuta scroll.js
+     mettendo .is-light sul body. */
+  --chrome:#AEAAAA;
+  --chrome-soft:#7A7878;
+
+  /* alias verso i nomi storici usati in sections.css */
+  --bg:var(--paper);
+  --surface-1:var(--sunk);
+  --surface-2:var(--lift);
+  --text-display:var(--ink);
+  --text-bright:var(--ink2);
+  --text-muted:var(--mute);
+  --text-max:var(--max);
+  --divider-solid:var(--divider);
+
+  --pre-bg:#AEAAAA;
+  --radius-btn:0;               /* di nuovo rettangolari, angoli vivi (committente, 2026-09-30) */
+
+  /* ── Scala del display ─────────────────────────────────────
+     La reference scala sull'ALTEZZA del viewport, non sulla
+     larghezza (misurato: maiuscole a 18,6% di H sia a 1473×840
+     sia a 1920×1080). Quindi il corpo si esprime in vh, con un
+     tetto in cqw che impedisce alla riga di sfondare oltre il
+     debordo voluto sulle finestre strette e alte.
+     TASA Orbiter 600: altezza delle maiuscole = 0,696 em.
+     26,7vh × 0,696 = 18,6% di H. */
+  /* −5% sul corpo calcolato qui sopra, poi un secondo −10% chiesto dal
+     vivo guardando la hero (2026-09-23): in tutto −14,5% rispetto al
+     titolo storico. Le maiuscole scendono al ~15,9% di H — sotto il
+     18,6% della reference, che però misura DUE righe: con tre blocchi
+     l'ingombro complessivo resta lo stesso e i vuoti fra le parole
+     diventano abbastanza larghi da far vedere la torre. */
+  --display-size:min(22.9vh, 12.9cqw);
+  --display-lh:.73;
+  --display-weight:600;
+  --display-track:0em;
+  --grid-opacity:1;
+  /* Il titolo scende al centro ottico dello stage (2026-09-23, era 13%):
+     col corpo più piccolo restava aria sotto, e il blocco si leggeva
+     appeso all'header invece che posato in mezzo allo schermo. */
+  --hero-top:18%;          /* posizione verticale del blocco titolo */
+  --hero-inset:2.5cqw;     /* margine laterale sinistro e destro */
+  /* Il debordo a destra era la firma della reference: l'ultima riga
+     usciva dallo stage e veniva tagliata (la X di PARADOX in img-02).
+     AZZERATO il 2026-09-23, per scelta: col titolo distribuito su tre
+     blocchi il respiro lo danno i vuoti fra le parole, e il taglio a
+     metà lettera restava a leggersi come un errore. Rimetterlo è una
+     riga sola — era 5cqw. */
+  --hero-bleed:0cqw;
+  --line-gap:0cqw;         /* distanza extra fra le righe, caso a 2 blocchi */
+  --align-1:left;          /* COSTRUITO: da sinistra */
+  --align-2:left;          /* PER: a sinistra come le altre due (2026-09-23) */
+  --align-3:left;          /* RESTARE: da sinistra, stessa colonna di COSTRUITO */
+  /* l'aria fra i tre blocchi: in em, così segue il corpo del titolo */
+  --salto-2:.06em;
+  --salto-3:.06em;
+
+  /* Correzione colore dei frame renderizzati (2026-09-23). Il bake è
+     in "Standard", senza tone mapping: schiaccia i neri, e allo zenit
+     la torre diventa una macchia. Qui si sollevano le ombre a valle,
+     invece di rifare il render (ore di Cycles). Il tetto è il
+     match-cut: il marchio deve restare CHIARO SU FONDO SCURO, o il
+     passaggio marchio → palazzo si smonta.
+     Gradazioni provate: timida 1.12/.97 · media 1.20/.95 · decisa 1.30/.92 */
+  --fondo-luce:1.2;
+  --fondo-contrasto:.95;
+  --scrim-forza:.42;       /* il velo scuro sulla metà bassa: era .55 */
+}
+
+/* I corpi delle copy alternative stanno QUI e non in varianti.js: da lì
+   finivano come stile inline su <html> e avrebbero battuto le regole
+   per il telefono qui sotto. Sono i valori storici meno il 5%. */
+[data-copia="2"]{--display-size:min(18.2vh, 10.3cqw)}
+[data-copia="3"]{--display-size:min(18.4vh, 10.4cqw)}
+
+/* Sul telefono il rapporto si rovescia: l'altezza abbonda e a comandare
+   è la larghezza, quindi il tetto in cqw va alzato fin dove `nowrap` lo
+   consente e la guardia in vh abbassata perché regga anche il telefono
+   in orizzontale.
+   Il tetto NON è a occhio: COSTRUITO misura 5,60em (misurato con un
+   Range sul testo vero, non stimato), e 95cqw utili / 5,60 = 16,96cqw.
+   16,5cqw teneva il margine per il side bearing del glifo; col −10%
+   sul corpo scende a 14,9cqw e il margine cresce ancora. */
+@media (max-width:900px){
+  /* +10% il 2026-09-28 (committente: «ingrandisci la scritta della
+     hero»): 16,4cqw resta sotto il tetto di 16,96 del nowrap. */
+  :root{ --display-size:min(20.8vh, 16.4cqw); --hero-top:21% }
+  /* Sul telefono (2026-09-25, «si vede molto sbiadito»): i grigi del
+     cemento scendono di un tono, così titoli, etichette e testi reggono
+     anche all'aperto e su schermi meno luminosi; e il fondo della torre
+     perde il velo di contrasto che lo appiattiva. Sulla notte le
+     etichette salgono un poco. */
+  :root{
+    --ink-l:#575353; --ink2-l:#262424; --mute-l:#6F6B6B;
+    --mute-d:#8C8989;
+    --fondo-luce:1.14; --fondo-contrasto:1.04;
+  }
+  [data-copia="2"]{--display-size:min(18.9vh, 10.3cqw)}
+  [data-copia="3"]{--display-size:min(18.9vh, 10.4cqw)}
+}
+
+body.is-light{ --chrome:#161616; --chrome-soft:#5B5757 }
+/* senza scrub la virata scatta: la ammorbidisce una transition.
+   Va su :root, che è l'elemento su cui --t cambia davvero
+   (registrata con @property, quindi interpolabile). */
+:root.is-stepped{ transition:--t .45s ease }
+
+*{box-sizing:border-box;margin:0;padding:0}
+/* La pagina non scorre MAI in orizzontale (committente, 2026-09-30: sul
+   telefono ogni tanto si spostava di lato). `clip` e non `hidden`: taglia
+   quello che sborda senza fare di html e body un contenitore di scroll,
+   così i pannelli sticky continuano a funzionare. Il rimbalzo laterale
+   di Safari va spento a parte. Le gallerie scorrono ancora di lato: sono
+   loro stesse a scorrere, non la pagina. */
+html, body{overflow-x:clip;overscroll-behavior-x:none}
+@supports not (overflow-x:clip){ html{overflow-x:hidden} }
+body{
+  background:var(--bg);
+  font-family:'TASA Orbiter',Arial,Helvetica,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* Lo stage è un layer fisso: la pagina scorre sopra di lui.
+   `position:fixed` crea uno stacking context SEMPRE, anche senza
+   z-index — è per questo che l'header è dovuto uscire da qui e stare a
+   livello di <body> (vedi il commento su .hd). Il fondo cinematico resta
+   giustamente sotto #page: è la pagina che scorre sopra lo stage. */
+.app{display:flex;position:fixed;inset:0;height:100vh;width:100vw;overflow:hidden}
+
+/* ── STAGE ─────────────────────────────────────────────────── */
+.stage{
+  position:relative;
+  flex:1 1 auto;
+  height:100%;
+  min-width:0;
+  background:var(--bg);
+  overflow:hidden;
+  container-type:inline-size;   /* tutte le misure sono cqw: lo stage scala da solo */
+}
+
+/* Fondo cinematico: frame renderizzati + effetto + scrim */
+.bg{position:absolute;inset:0}
+.bg__scrim{
+  position:absolute;inset:0;pointer-events:none;
+  /* il velo alleggerito (2026-09-23): era .55 al 26%, e spegneva la
+     torre proprio nella fascia dove il titolo lascia i vuoti */
+  background:linear-gradient(to top, var(--bg) 0%, rgba(15,15,15,var(--scrim-forza)) 26%, rgba(15,15,15,0) 58%);
+}
+.bg__still{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;display:none}
+
+/* Il fronte della virata (img-13): il chiaro cala come una tenda
+   invece di comparire uniformemente. Il velo sta DENTRO .bg e SOTTO
+   i canvas, così la piuma resta visibile a cavallo del fronte; i
+   frame renderizzati vengono ritagliati al negativo, quindi sopra il
+   fronte c'è il nuovo fondo e sotto c'è ancora la scena vecchia.
+   Non è una seconda sorgente di verità sui colori: si spegne appena
+   la virata è compiuta, quando il suo colore e il fondo della pagina
+   coincidono e lo scambio non si vede. */
+.flip-veils{position:absolute;inset:0;pointer-events:none}
+.flip-veil{position:absolute;inset:0;display:block;opacity:0;will-change:clip-path}
+
+/* Canvas effetto */
+.fx{position:absolute;inset:0;width:100%;height:100%;display:block}
+.fx[hidden]{display:none}
+/* la correzione sta sul canvas, non nel disegno: ctx.filter costerebbe
+   a ogni frame dello scrub, qui la paga la GPU una volta sola */
+#seq, #seqFront{opacity:0;filter:brightness(var(--fondo-luce)) contrast(var(--fondo-contrasto))}
+/* in WebGL (js/effects/nitido.js) luce e contrasto sono già nello
+   shader: il filtro qui li applicherebbe due volte */
+#seq.is-gl, #seqFront.is-gl{filter:none}
+/* Il primo piano deve stare SOPRA la hero (z 2) e sotto gli angoli (3),
+   che sono chrome e non vanno mai coperti: stesso z, ma prima nel DOM.
+   Sopra l'header (5) non ci arriva mai. Stesso filtro del fondo, o i
+   due palazzi avrebbero due luci diverse. */
+#seqFront{z-index:3;pointer-events:none}
+/* Sonda della baseline: un elemento vuoto in linea, alto zero. Il suo
+   bordo inferiore cade sulla baseline della riga, ed è così che
+   js/scroll.js sa dove finisce davvero il piede della lettera che
+   tiene intera. Non occupa spazio e non si vede. */
+.base-sonda{display:inline-block;width:0;height:0}
+#fx{opacity:0}   /* la piuma si rivela via scroll, a viaggio bloccato */
+/* Il nido d'ape (2026-09-24) prende il posto dei filamenti: stesso
+   momento, stessa dissolvenza. Tratto un filo più scuro del cemento. */
+.nido{position:absolute;inset:0;display:block;opacity:0;visibility:hidden;color:#B3AEAE;
+  -webkit-mask-image:linear-gradient(to bottom right,#fff,transparent 70%);
+  mask-image:linear-gradient(to bottom right,#fff,transparent 70%);
+  pointer-events:none}
+
+/* Marchio che si trasforma nella vista zenitale */
+.logo-morph{position:absolute;z-index:2;pointer-events:none;color:var(--text-display)}
+.logo-morph svg{width:100%;height:100%;display:block}
+.logo-morph .m-ring{stroke:#33526F}   /* anello: il blu del basamento nel render — è marchio, non palette */
+.logo-morph .m-mono{stroke:#9DA0A6}   /* monogramma: i solai chiari visti dall'alto */
+.fx-note{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  z-index:1;text-align:center;line-height:1.6;max-width:34cqw;
+  font-size:clamp(11px,1.1cqw,14px);color:var(--text-muted);
+  border:1px solid var(--rule);padding:1.4cqw 1.8cqw;
+}
+.fx-note[hidden]{display:none}
+.fx-note code{color:var(--text-display);font-family:ui-monospace,Menlo,monospace;font-size:.95em}
+
+/* ── Griglia a fili ────────────────────────────────────────── */
+.grid{position:absolute;inset:0;pointer-events:none;opacity:var(--grid-opacity);transition:opacity .3s}
+.grid span{position:absolute;background:var(--rule)}
+.grid__v       {left:50%;top:64%;width:1px;height:36%}
+.grid__h-left  {left:35%;bottom:5.5%;height:1px;width:15%}
+.grid__h-right {left:50%;bottom:5.5%;height:1px;width:15%}
+.grid__nav-rule{left:40%;top:4.4%;height:1px;width:20%}   /* nella ref il filo sta appena sopra INTRODUZIONE, non staccato */
+
+/* ── Header ────────────────────────────────────────────────── */
+/* La fascia alta della reference sta ~20px più su della nostra a
+   1920 (logo: ink a y 45 contro 64). Il filo della nav invece sta
+   più in basso, appena sopra INTRODUZIONE. Tutto in cqw, così la
+   fascia continua a scalare con lo stage. */
+/* fixed e non absolute: l'header sta a livello di <body>, fuori dai due
+   stacking context dello stage. z-index:5 per stare sopra #page (1).
+   Le misure restano in cqw ma senza container cadono sul viewport, che
+   è la stessa larghezza dello stage: i valori non cambiano. */
+.hd{position:fixed;inset:0 0 auto 0;padding:1.9cqw 2.5cqw 0;display:flex;align-items:flex-start;justify-content:space-between;z-index:5}
+.hd__logo{
+  display:flex;align-items:center;gap:.85cqw;text-decoration:none;
+  color:var(--chrome-soft);font-weight:600;font-size:clamp(13px,1.45cqw,20px);
+  letter-spacing:-.01em;
+}
+/* Il marchio eredita il colore via currentColor: vira col tema da
+   solo, senza una riga di JS. Il blu resta un'opzione (--brand-blu),
+   non un colore della pagina. */
+/* Il marchio e "salzillo" sono sempre nel blu istituzionale, sulla notte
+   come sul cemento (2026-09-24); "costruzioni" resta nel grigio di bordo. */
+.hd__mark{display:block;width:2.9cqw;min-width:24px;color:var(--marchio-blu);flex:0 0 auto}
+.hd__mark svg{display:block;width:100%;height:auto}
+/* Su una riga sola e in maiuscolo: SALZILLO COSTRUZIONI (committente,
+   2026-09-30). Prima era una parola sopra l'altra. */
+.hd__wordmark{display:flex;flex-direction:row;align-items:baseline;gap:.32em;line-height:1;white-space:nowrap;text-transform:uppercase;letter-spacing:.02em}
+/* Il peso sta sul NOME, non sulla riga di sotto: era `span:last-child`
+   quando "salzillo" stava in fondo, e invertendo l'ordine avrebbe
+   marcato la parola sbagliata. */
+.hd__nome{color:var(--marchio-blu)}
+.hd__tipo{color:var(--chrome-soft)}
+/* Variante A — solo marchio: il testo esce e il simbolo cresce. */
+.hd__logo[data-logo="a"] .hd__wordmark{display:none}
+.hd__logo[data-logo="a"] .hd__mark{width:3.4cqw;min-width:28px}
+.hd .lbl{color:var(--chrome)}
+/* Le tre ancore della fascia non sono allineate fra loro nemmeno
+   nella reference: il logo sta più in alto, la voce di destra più
+   in basso. I due padding qui sotto sono tarati su quella misura
+   (ref a 1920: logo 45, INTRODUCTION 65, voce destra 67). */
+/* La nav è ora una riga di quattro voci, quindi non sta più in una
+   colonna del 20%: si centra sullo stage e si dimensiona da sé. */
+.hd__center{position:absolute;left:50%;top:1.9cqw;transform:translateX(-50%);display:flex;align-items:center;gap:2cqw;padding-top:1.1cqw}
+.hd__right{display:flex;align-items:center;gap:.9cqw;text-decoration:none;padding-top:1.5cqw}
+
+.lbl{
+  font-size:clamp(9px,1.05cqw,13px);
+  font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--text-display);white-space:nowrap;
+}
+
+.icon-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.28cqw;background:none;border:0;cursor:pointer;padding:0}
+.icon-grid i{width:.42cqw;height:.42cqw;min-width:3px;min-height:3px;background:var(--chrome);display:block}
+/* ── Nav: le quattro tappe ─────────────────────────────────
+   La voce in cui ti trovi si accende e tiene un filo arancione:
+   è l'unico accento della fascia, come le CTA della reference.
+   Il sottomenu delle opere si apre in hover E in focus, così la
+   tastiera lo raggiunge senza una riga di JS. */
+.nav__gruppo{position:relative}
+.nav__voce{position:relative;display:block;text-decoration:none;padding-bottom:.6cqw}
+.nav__voce .lbl{color:var(--chrome-soft);transition:color .25s ease}
+.nav__voce:hover .lbl,.nav__voce:focus-visible .lbl{color:var(--chrome)}
+.nav__voce.is-qui .lbl{color:var(--text-max)}
+.nav__voce::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:2px;
+  background:var(--accent);transform:scaleX(0);transform-origin:left;
+  transition:transform .3s ease;
+}
+.nav__voce.is-qui::after{transform:scaleX(1)}
+.nav__sub{
+  position:absolute;left:50%;top:100%;z-index:6;
+  transform:translateX(-50%) translateY(-.4rem);
+  display:flex;flex-direction:column;min-width:12rem;padding:.5rem 0;
+  background:var(--surface-1);border:1px solid var(--rule);
+  opacity:0;visibility:hidden;
+  transition:opacity .22s ease,transform .22s ease,visibility .22s;
+}
+.nav__gruppo:hover .nav__sub,
+.nav__gruppo:focus-within .nav__sub,
+.nav__sub.is-aperto{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
+.nav__sotto{display:block;padding:.5rem 1.1rem;text-decoration:none}
+.nav__sotto .lbl{color:var(--chrome-soft);transition:color .2s ease}
+.nav__sotto:hover .lbl,.nav__sotto:focus-visible .lbl,.nav__sotto.is-qui .lbl{color:var(--accent)}
+
+/* Il bottone del menu esiste solo sul telefono. */
+.hd__burger{display:none}
+
+/* Sotto i 900px (committente, 2026-09-25): una fascia sola e bassa —
+   marchio a sinistra, ☰ a destra — con fondo pieno, così i titoli non
+   ci passano più dietro. Le voci stanno in un pannello a tutto schermo
+   che si apre col ☰ (js/nav.js), sottovoci delle opere comprese. */
+@media (max-width:900px){
+  :root{ --hd-h:60px }
+  .hd{
+    height:var(--hd-h);padding:0 16px;align-items:center;
+    border-bottom:1px solid var(--rule);
+  }
+  /* Il fondo sfocato sta su uno pseudo-elemento e non sulla fascia: un
+     backdrop-filter sulla fascia farebbe di lei il riferimento del
+     pannello fisso del menu, e Safari su iPhone lo ritaglia lì dentro
+     (committente, 2026-09-25: «il menu a tendina non si vede»). */
+  .hd::before{
+    content:"";position:absolute;inset:0;z-index:-1;
+    background:color-mix(in srgb, var(--bg) 88%, transparent);
+    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  }
+  .hd__logo{font-size:14px;gap:9px}
+  /* salzillo e costruzioni più vicini (committente, 2026-09-25) */
+  .hd__wordmark{line-height:1}
+  .hd__mark{width:30px}
+  .hd__right{display:none}
+
+  /* Niente flex né gap dentro il <button>: Safari su iPhone ne avvolge
+     il contenuto in un blocco interno che si stringe sul contenuto, e
+     le due righe — vuote — finivano larghe zero: il ☰ non si vedeva mai
+     (committente, 2026-09-25). Righe a misura fissa, centrate a mano. */
+  .hd__burger{
+    display:block;position:relative;flex:0 0 auto;
+    width:44px;height:44px;margin-right:-10px;padding:0;
+    background:none;border:0;border-radius:0;cursor:pointer;
+    -webkit-appearance:none;appearance:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  /* ☰ nel blu del marchio, come il simbolo accanto (2026-09-25) */
+  .hd__burger span{
+    position:absolute;left:10px;width:24px;height:2px;
+    background:var(--marchio-blu);transition:transform .3s ease;
+  }
+  .hd__burger span:first-child{top:17px}
+  .hd__burger span:last-child {top:26px}
+  .hd.is-menu .hd__burger span:first-child{transform:translateY(4.5px) rotate(45deg)}
+  .hd.is-menu .hd__burger span:last-child {transform:translateY(-4.5px) rotate(-45deg)}
+
+  .hd__center{
+    position:fixed;left:0;right:0;top:var(--hd-h);bottom:0;transform:none;
+    height:calc(100dvh - var(--hd-h));
+    display:flex;flex-direction:column;align-items:stretch;gap:0;
+    padding:24px 16px calc(24px + env(safe-area-inset-bottom));
+    background:var(--marchio-blu);overflow-y:auto;
+    opacity:0;visibility:hidden;transition:opacity .25s ease,visibility .25s;
+  }
+  .hd.is-menu .hd__center{opacity:1;visibility:visible}
+  /* Il pannello è nel blu del marchio, le voci in bianco (committente,
+     2026-09-25); la voce della sezione in cui sei è piena e sottolineata. */
+  .hd__center .nav__voce{padding:16px 0;border-bottom:1px solid rgba(255,255,255,.22)}
+  .hd__center .nav__voce .lbl{font-size:24px;letter-spacing:.02em;color:rgba(255,255,255,.72)}
+  .hd__center .nav__voce.is-qui .lbl{color:#fff}
+  .hd__center .nav__voce::after{
+    left:0;right:auto;bottom:10px;width:32px;background:#fff;
+    display:none;transform:none;
+  }
+  .hd__center .nav__voce.is-qui::after{display:block}
+  /* le sottovoci delle opere stanno sempre aperte, rientrate */
+  .hd .nav__gruppo .nav__sub{
+    position:static;transform:none;opacity:1;visibility:inherit;
+    min-width:0;padding:4px 0 12px 16px;background:none;border:0;
+    border-bottom:1px solid rgba(255,255,255,.22);
+  }
+  .nav__gruppo .nav__voce{border-bottom:0}
+  .nav__sotto{padding:10px 0}
+  .hd__center .nav__sotto .lbl{font-size:15px;color:rgba(255,255,255,.72)}
+  .hd__center .nav__sotto.is-qui .lbl{color:#fff}
+  body.menu-aperto{overflow:hidden}
+  body.menu-aperto .wa{display:none}
+}
+
+.icon-blocks{display:flex;align-items:flex-end;gap:.14cqw}
+.icon-blocks i:first-child{width:.62cqw;height:.42cqw;min-width:5px;min-height:3px;background:var(--chrome)}
+.icon-blocks i:last-child {width:.42cqw;height:.62cqw;min-width:3px;min-height:5px;background:var(--chrome)}
+
+/* ── Titolo display ────────────────────────────────────────── */
+.hero{position:absolute;left:var(--hero-inset);right:calc(var(--hero-inset) - var(--hero-bleed));top:var(--hero-top);z-index:2}
+.display{
+  font-size:var(--display-size);
+  line-height:var(--display-lh);
+  font-weight:var(--display-weight);
+  letter-spacing:var(--display-track);
+  text-transform:uppercase;
+  color:var(--text-display);
+  white-space:nowrap;
+}
+/* overflow:hidden È la maschera del reveal — ogni blocco ha la sua, e
+   senza quella le parole non entrano da sotto il taglio ma appaiono. */
+.display .line{display:block;overflow:hidden}
+.display .line--1{text-align:var(--align-1)}
+.display .line--2{text-align:var(--align-2);margin-top:var(--salto-2)}
+.display .line--3{text-align:var(--align-3);margin-top:var(--salto-3)}
+/* Le copy alternative (?copy=2, ?copy=3) hanno due blocchi: il terzo
+   esce di scena e si torna all'alternato di prima, così il committente
+   le rivede esattamente come gliele abbiamo mostrate. */
+.display[data-blocchi="2"] .line--2{margin-top:var(--line-gap)}
+.display[data-blocchi="2"] .line--3{display:none}
+.line__in{display:block;will-change:transform}
+.line--front{color:var(--text-display)}
+
+/* ── Lockup di brand ───────────────────────────────────────── */
+.lockup{
+  /* Allo stesso livello del preloader (committente, 2026-09-24): lì il
+     lockup sta sopra la percentuale, dentro un padding in % della
+     LARGHEZZA (2,5%) — qui si rifà la stessa somma: padding + margine
+     della percentuale (1,4cqw) + la sua riga. In % dell'altezza le due
+     scritte coincidevano solo su uno schermo di una certa proporzione. */
+  position:absolute;left:50%;bottom:calc(3.9cqw + 1.17 * clamp(9px,.9cqw,12px));transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;line-height:1.04;
+  font-weight:700;font-size:clamp(16px,2.6cqw,42px);letter-spacing:-.01em;
+  text-transform:uppercase;text-align:center;z-index:2;
+}
+.lockup__a{color:var(--text-muted)}
+.lockup__b{color:var(--text-max)}
+
+/* ── Micro-UI d'angolo ─────────────────────────────────────── */
+.corner{position:absolute;bottom:3.4%;z-index:3}
+.corner--l{left:2.5cqw}
+.corner--r{right:2.5cqw}
+.corner .lbl{color:var(--chrome-soft);font-size:clamp(8px,.88cqw,11px);letter-spacing:.1em}
+
+/* ── Preloader ─────────────────────────────────────────────── */
+.preloader{position:absolute;inset:0;background:var(--pre-bg);z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:2.5%}
+.preloader__rule{position:absolute;left:0;top:50%;height:1px;width:0;background:#0F0F0F;opacity:.55}
+.preloader__lockup{display:flex;flex-direction:column;align-items:center;line-height:1.04;font-weight:700;font-size:clamp(16px,2.6cqw,42px);letter-spacing:-.01em;text-transform:uppercase}
+.preloader__lockup .lockup__a{color:#0F0F0F}
+.preloader__lockup .lockup__b{color:#6E6A6A}
+.preloader__pct{margin-top:1.4cqw;font-size:clamp(9px,.9cqw,12px);font-weight:700;color:#0F0F0F;letter-spacing:.08em}
+
+/* stato iniziale pre-intro */
+/* `.is-intro` sta sullo stage: l'header, che ora è suo fratello e non
+   più suo figlio, si raggiunge col combinatore di pari livello. */
+/* `.is-intro` sta sullo stage; l'header ora è fuori da .app, quindi lo
+   si raggiunge guardando dentro lo stage con :has(). Serve solo come
+   rete per l'istante prima che hero.js parta. */
+.is-intro .hero,.is-intro .lockup,.is-intro .corner,.is-intro .grid,
+#app:has(.is-intro) ~ .hd{opacity:0}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms !important;transition-duration:.01ms !important}
+}

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1.2 -1.2 2.4 2.4" color="#4A6C93" role="img" aria-label="Costruzioni Salzillo">
+  <title>Costruzioni Salzillo — marchio</title>
+  <!-- Geometria ricavata misurando a pixel l'insegna originale
+       (assets/caratteristiche/logo.jpeg). Raggio esterno dell'anello = 1.
+       Monocromatico: eredita il colore dal contesto via currentColor. -->
+  <g fill="none" stroke="currentColor" stroke-linecap="round">
+    <!-- anello -->
+    <circle cx="0" cy="0" r="0.932" stroke-width="0.136"/>
+    <!-- tratto S: due archi tangenti verticalmente nel flesso (-0.155, 0) -->
+    <path d="M 0.3527 -0.8412
+             A 0.95 0.95 0 0 0 -0.155 0
+             A 0.74 0.74 0 0 1 -0.5084 0.631" stroke-width="0.105"/>
+    <!-- tratto C: arco di 187 gradi aperto verso destra -->
+    <path d="M 0.5827 -0.5501
+             A 0.534 0.534 0 1 0 0.5827 0.5161" stroke-width="0.105"/>
+  </g>
+</svg>
