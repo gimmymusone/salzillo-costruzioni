@@ -1004,7 +1004,9 @@ window.SEQ = (function(){
        accendersi — che è anche la coreografia giusta. */
     {
       ScrollTrigger.create({
-        trigger:'#s-piuma', start:'top top', end:'70% top',
+        /* 2026-09-30: la caduta dura 120vh fissi (non più il 70% della
+           sezione): lo schianto finisce prima che salga Perché noi. */
+        trigger:'#s-piuma', start:'top top', end:'top -120%',
         scrub:true, invalidateOnRefresh:true,
         onUpdate(self){ inCaduta(self.progress); caduta.ultimo = fot(self.progress); BRICK.draw(fot(self.progress), luce()); },
         onRefresh(self){ if(self.progress > 0){ inCaduta(self.progress); BRICK.draw(fot(self.progress), luce()); } }
