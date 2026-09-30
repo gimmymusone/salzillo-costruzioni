@@ -19,10 +19,10 @@ html{font-size:1.05vw}
 
 /* 180vh e non più 300 (2026-09-28, «troppo a rilento»): la discesa
    della torre ora chiede ~3,8 schermate invece di ~5,7 */
-#hero-spacer{height:180vh}
+#hero-spacer{height:130vh}   /* 2026-09-30: tutto il tratto prima di Perché noi ~35% più rapido */
 
 /* Capitolo pinnato: il contenuto tiene mentre il fondo evolve */
-.chapter{height:400vh}
+.chapter{height:260vh}
 .chapter .sticky, #s-cerniera .sticky, #s-cantieri .sticky,
 #s-ristrutturazioni .sticky,
 #s-piuma .sticky, #s-cases .sticky, #s-storia .sticky{
@@ -171,7 +171,7 @@ html{font-size:1.05vw}
    destra ma RIENTRA (img-23). Il padding sta sulla .line, non sul suo
    contenuto: la maschera del wipe lavora sulla riga intera. */
 .line--rientro{padding-left:1.4em}
-.chapter--m{height:350vh}
+.chapter--m{height:230vh}
 
 /* ── Sezioni 4 e 5: due colonne speculari ──────────────────
    Nella reference la 4 ha l'oggetto a sinistra e il testo a destra
@@ -257,7 +257,7 @@ html{font-size:1.05vw}
 /* 600vh = 1.620 px per riga a viewport 1080, la misura del faretto
    nella reference. A 320vh ne dava 864 e il faretto passava alla riga
    dopo prima che si leggesse quella accesa. */
-#s-piuma{height:600vh}
+#s-piuma{height:400vh}
 /* Il blocco è ancorato a destra ma le righe partono tutte dalla
    stessa colonna, come DEFY / GRAVITY / WITH / ELEGANCE in img-17:
    `width:max-content` fa sì che il blocco si stringa sulla riga più
@@ -611,7 +611,7 @@ html{font-size:1.05vw}
   /* la corsa della camera sulla torre (2026-09-25: la torre si muove
      anche qui); dopo la 01 le sezioni hanno fondo pieno, così lo stage
      fisso non trapela più sotto il testo */
-  #hero-spacer{height:220vh}
+  #hero-spacer{height:160vh}
   #s-cases{background:var(--bg)}
   .chapter, .chapter--m{height:auto}
   .chapter .sticky, #s-cerniera .sticky, #s-cantieri .sticky,
