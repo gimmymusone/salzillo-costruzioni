@@ -413,8 +413,8 @@ html{font-size:1.05vw}
 /* la timeline sta al centro dello schermo: con flex-end (l'impostazione
    comune degli sticky) le tappe restavano schiacciate in basso sotto
    settecento pixel di nero */
-/* 11 opere invece di 5 tappe: più corsa, così ogni foto resta leggibile */
-#s-storia{height:700vh;background:var(--bg)}
+/* 26 opere (2026-09-30): la corsa cresce con la track, stesso passo di quando erano 11 a 700vh */
+#s-storia{height:1800vh;background:var(--bg)}
 #s-storia .sticky{justify-content:center}
 #s-storia .sec-label{margin-bottom:2.4rem}
 .storia-track{
