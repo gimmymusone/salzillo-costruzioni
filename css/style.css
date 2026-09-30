@@ -175,6 +175,14 @@ body.is-light{ --chrome:#161616; --chrome-soft:#5B5757 }
 :root.is-stepped{ transition:--t .45s ease }
 
 *{box-sizing:border-box;margin:0;padding:0}
+/* La pagina non scorre MAI in orizzontale (committente, 2026-09-30: sul
+   telefono ogni tanto si spostava di lato). `clip` e non `hidden`: taglia
+   quello che sborda senza fare di html e body un contenitore di scroll,
+   così i pannelli sticky continuano a funzionare. Il rimbalzo laterale
+   di Safari va spento a parte. Le gallerie scorrono ancora di lato: sono
+   loro stesse a scorrere, non la pagina. */
+html, body{overflow-x:clip;overscroll-behavior-x:none}
+@supports not (overflow-x:clip){ html{overflow-x:hidden} }
 body{
   background:var(--bg);
   font-family:'TASA Orbiter',Arial,Helvetica,sans-serif;
@@ -186,7 +194,7 @@ body{
    z-index — è per questo che l'header è dovuto uscire da qui e stare a
    livello di <body> (vedi il commento su .hd). Il fondo cinematico resta
    giustamente sotto #page: è la pagina che scorre sopra lo stage. */
-.app{display:flex;position:fixed;inset:0;height:100vh;width:100vw}
+.app{display:flex;position:fixed;inset:0;height:100vh;width:100vw;overflow:hidden}
 
 /* ── STAGE ─────────────────────────────────────────────────── */
 .stage{
@@ -291,7 +299,9 @@ body{
    come sul cemento (2026-09-24); "costruzioni" resta nel grigio di bordo. */
 .hd__mark{display:block;width:2.9cqw;min-width:24px;color:var(--marchio-blu);flex:0 0 auto}
 .hd__mark svg{display:block;width:100%;height:auto}
-.hd__wordmark{display:flex;flex-direction:column;line-height:1.05}
+/* Su una riga sola e in maiuscolo: SALZILLO COSTRUZIONI (committente,
+   2026-09-30). Prima era una parola sopra l'altra. */
+.hd__wordmark{display:flex;flex-direction:row;align-items:baseline;gap:.32em;line-height:1;white-space:nowrap;text-transform:uppercase;letter-spacing:.02em}
 /* Il peso sta sul NOME, non sulla riga di sotto: era `span:last-child`
    quando "salzillo" stava in fondo, e invertendo l'ordine avrebbe
    marcato la parola sbagliata. */
@@ -373,7 +383,7 @@ body{
   }
   .hd__logo{font-size:14px;gap:9px}
   /* salzillo e costruzioni più vicini (committente, 2026-09-25) */
-  .hd__wordmark{line-height:.92}
+  .hd__wordmark{line-height:1}
   .hd__mark{width:30px}
   .hd__right{display:none}
 
