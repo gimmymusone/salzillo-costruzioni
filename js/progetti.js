@@ -24,14 +24,11 @@ window.PROGETTI = (function(){
 
   const NUOVE = 'Nuove costruzioni', RISTR = 'Ristrutturazioni';
   const DATI = {
-    'via-torre':        {nome:'Via Torre',        categoria:NUOVE, tipo:DC, luogo:DC,           stato:DC, foto:foto('via-torre', 5)},
+    'via-torre':        {nome:'Via Torri',        categoria:NUOVE, tipo:DC, luogo:DC,           stato:DC, foto:foto('via-torre', 5)},
     'villette-portico': {nome:'Villette Portico', categoria:NUOVE, tipo:DC, luogo:DC,           stato:DC, foto:foto('villette-portico', 5)},
     'residence-curti':  {nome:'Residence Curti',  categoria:NUOVE, tipo:DC, luogo:DC,           stato:DC, foto:foto('residence-curti', 5)},
     'via-gorizia':      {nome:'Via Gorizia',      categoria:NUOVE, tipo:DC, luogo:'Mondragone', stato:DC, foto:foto('via-gorizia', 5)},
-    /* le ristrutturazioni non hanno ancora foto né dati */
-    'ristrutturazione-1': {nome:DC, categoria:RISTR, tipo:DC, luogo:DC, stato:DC, foto:[]},
-    'ristrutturazione-2': {nome:DC, categoria:RISTR, tipo:DC, luogo:DC, stato:DC, foto:[]},
-    'ristrutturazione-3': {nome:DC, categoria:RISTR, tipo:DC, luogo:DC, stato:DC, foto:[]}
+    'via-novelli':      {nome:'Via Novelli',      categoria:NUOVE, tipo:DC, luogo:DC,           stato:'In costruzione', foto:[]}
   };
 
   const scheda = document.getElementById('scheda');

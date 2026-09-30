@@ -359,7 +359,7 @@ html{font-size:1.05vw}
 .servizi__grid{
   /* tre colonne, non quattro: le voci sono sei e la griglia si chiude
      in due righe piene invece di lasciare due celle vuote in fondo */
-  list-style:none;display:grid;grid-template-columns:repeat(3,1fr);gap:1px;
+  list-style:none;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;   /* otto voci dal 2026-09-30 */
   background:var(--divider-solid,#3D3D3D);border:1px solid var(--divider-solid,#3D3D3D);
 }
 .svc{background:var(--surface-1);padding:1.6rem;min-height:11rem}
@@ -542,6 +542,17 @@ html{font-size:1.05vw}
   border:1px dashed var(--divider-solid,#3D3D3D);background:var(--surface-2);
 }
 .case--vuota .case__posto .todo{font-size:.78rem;letter-spacing:.06em}
+/* le ristrutturazioni sono servizi, non foto (2026-09-30): stessa card, col testo */
+.case--servizio{background:var(--surface-2);border:1px solid var(--divider-solid,#3D3D3D)}
+.case__testo{height:100%;display:flex;flex-direction:column;justify-content:flex-end;gap:.8rem;padding:2.4rem 1.6rem 1.6rem}
+.case__svc{font-size:1.5rem;font-weight:600;line-height:1.05;text-transform:uppercase;color:var(--text-max)}
+.case--servizio .case__n{color:var(--text-muted);mix-blend-mode:normal}
+.imm__foto{position:relative;overflow:hidden}
+.imm__foto img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+/* modulo: due invii, WhatsApp pieno ed email a filo */
+.contact__invia{display:flex;flex-wrap:wrap;gap:.8rem;margin-top:2rem}
+.contact__invia .btn-accent{margin-top:0}
+.btn-accent--vuoto{background:transparent;color:var(--text-display);box-shadow:inset 0 0 0 1px var(--divider-solid,#3D3D3D)}
 /* niente riquadro né gradiente: su cemento la foto sta da sola e
    la didascalia è il lockup bicolore in basso, come nella reference */
 /* titolo e didascalia impilati a sinistra: allineati ai due estremi
@@ -712,8 +723,13 @@ html{font-size:1.05vw}
   .case-card__ft .lbl{font-size:11px}
 
   #s-cantieri .sticky, #s-ristrutturazioni .sticky{min-height:0;padding:56px 0}
-  .galleria__nome{font-size:28px;padding:0 16px;margin-bottom:16px}
-  .galleria__cat{font-size:15px;padding:0 16px;margin-top:16px}
+  /* più grandi da telefono (committente, 2026-09-30: non si leggeva) */
+  .galleria__nome{font-size:36px;padding:0 16px;margin-bottom:16px}
+  .galleria__cat{font-size:22px;padding:0 16px;margin-top:16px}
+  #ristrNome{display:none}   /* il nome non scorre: ripeteva la prima card */
+  .case--servizio{aspect-ratio:auto;min-height:260px}
+  .case__svc{font-size:24px}
+  .case--servizio .sec-body{font-size:16px;line-height:1.45}
   .cases-track{
     flex-direction:row;width:auto;gap:12px;padding:0 16px;
     overflow-x:auto;overscroll-behavior-x:contain;
@@ -780,7 +796,7 @@ html{font-size:1.05vw}
    rem sul desktop, e a 360px scendevano fino a 7px. */
 @media (max-width:900px){
   #page .lbl{font-size:12px}
-  .case__n{font-size:12px}
+  .case__n{font-size:15px}
   .todo, .case--vuota .case__posto .todo{font-size:12px}
   .corner .lbl{font-size:11px}
   .btn-accent{font-size:14px}

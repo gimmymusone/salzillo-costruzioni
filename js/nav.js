@@ -192,3 +192,22 @@ window.NAV = (function(){
   return { vaiA, misura };
 
 })();
+
+/* Modulo contatti (2026-09-30): nessun server. Compone il messaggio e lo
+   apre su WhatsApp (ufficio, 329 638 0380) o nella mail del visitatore. */
+(function(){
+  const f = document.getElementById('modulo');
+  if(!f) return;
+  f.addEventListener('submit', e=>{
+    e.preventDefault();
+    const v = id => document.getElementById(id).value.trim();
+    const testo = [v('cMsg'), v('cNome') && `— ${v('cNome')}`, v('cMail')].filter(Boolean).join('\n');
+    if(!v('cMsg')){ document.getElementById('cMsg').focus(); return; }
+    if(e.submitter && e.submitter.value === 'mail'){
+      location.href = 'mailto:salzillocostruzioni@libero.it?subject=' +
+        encodeURIComponent('Richiesta dal sito') + '&body=' + encodeURIComponent(testo);
+    } else {
+      open('https://wa.me/393296380380?text=' + encodeURIComponent(testo), '_blank', 'noopener');
+    }
+  });
+})();
