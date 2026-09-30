@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Salzillo Costruzioni — Costruito per restare</title>
+<script>
+  /* Alla ricarica il sito riparte sempre dall'inizio (2026-09-30): il
+     browser rimetteva la pagina a metà, ma preloader e coreografie
+     ripartono da zero e la schermata si rompeva. Si tiene solo
+     #progetto/…, che apre la scheda sopra il sito. */
+  if('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  if(location.hash && !location.hash.startsWith('#progetto/'))
+    history.replaceState(null, '', location.pathname + location.search);
+  scrollTo(0, 0);
+  addEventListener('pageshow', e=>{ if(e.persisted) location.reload(); });
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=TASA+Orbiter:wght@400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=33">
+<link rel="stylesheet" href="css/sections.css?v=91">
+</head>
+<body>
+
+<!-- ═══════════════ STAGE FISSO (fondo cinematico + hero) ═══════════════ -->
+<div class="app" id="app">
+  <main class="stage is-intro" id="stage">
+
+    <!-- Preloader -->
+    <div class="preloader" id="preloader">
+      <div class="preloader__rule" id="preRule"></div>
+      <div class="preloader__lockup">
+        <span class="lockup__a" data-copy="lockupA"><span data-anni>46</span> ANNI DI</span><!-- fondazione 1980 (confermata 2026-09-24); gli anni li aggiorna js/varianti.js -->
+        <span class="lockup__b" data-copy="lockupB">CANTIERI</span>
+      </div>
+      <div class="preloader__pct" id="prePct">0%</div>
+    </div>
+
+    <!-- Fondo cinematico: frame renderizzati + effetto mattone + scrim -->
+    <div class="bg" id="bg">
+      <!-- I veli della virata: li crea js/scroll.js dalle sezioni che
+           dichiarano data-flip-curtain. Stanno sotto i canvas, così la
+           piuma resta visibile a cavallo del fronte. -->
+      <div class="flip-veils" id="flipVeils" aria-hidden="true"></div>
+      <canvas class="fx" id="seq"></canvas>
+      <canvas class="fx" id="fx"></canvas>
+      <!-- Nido d'ape al posto dei filamenti (committente, 2026-09-24; reference:
+           HexagonPattern di Magic UI, raggio 40, sfumato verso il basso a
+           destra). Esagoni con la punta in alto; la tessera è larga √3·r e
+           alta 3r. Compare e se ne va con gli stessi tempi dei filamenti
+           (js/scroll.js → initPiuma). -->
+      <svg class="nido" id="nido" aria-hidden="true" width="100%" height="100%">
+        <defs>
+          <pattern id="nidoTessera" width="69.28" height="120" patternUnits="userSpaceOnUse" x="-1" y="-1">
+            <g fill="none" stroke="currentColor" stroke-width="1"><polygon points="34.64,0.00 69.28,20.00 69.28,60.00 34.64,80.00 -0.00,60.00 0.00,20.00"/><polygon points="0.00,60.00 34.64,80.00 34.64,120.00 0.00,140.00 -34.64,120.00 -34.64,80.00"/><polygon points="69.28,60.00 103.92,80.00 103.92,120.00 69.28,140.00 34.64,120.00 34.64,80.00"/><polygon points="0.00,-60.00 34.64,-40.00 34.64,-0.00 0.00,20.00 -34.64,-0.00 -34.64,-40.00"/><polygon points="69.28,-60.00 103.92,-40.00 103.92,-0.00 69.28,20.00 34.64,-0.00 34.64,-40.00"/><polygon points="34.64,120.00 69.28,140.00 69.28,180.00 34.64,200.00 -0.00,180.00 0.00,140.00"/></g>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#nidoTessera)"/>
+      </svg>
+      <canvas class="fx fx--gl" id="fx3d" hidden></canvas>
+      <!-- Il mattone che attraversa 02, 03 e piuma: uno solo, fisso
+           allo schermo e mosso dallo scroll (js/scroll.js → initBrick). -->
+      <div class="mattone-volo" aria-hidden="true"></div>
+      <img class="bg__still" src="assets/frames/static-zenith.webp" alt="">
+      <img class="bg__still" src="assets/frames/static-orbit.webp" alt="">
+      <img class="bg__still" src="assets/frames/static-hero.webp" alt="">
+      <div class="bg__scrim"></div>
+    </div>
+
+    <!-- Il palazzo in primo piano: lo stesso fotogramma del fondo,
+         ritagliato con la sua silhouette (assets/matte/) così il titolo
+         ci passa DIETRO. Sta fuori da .bg apposta — dentro resterebbe
+         prigioniero sotto la hero. Disegnato da js/scroll.js insieme al
+         fondo, con la stessa cover-math: i due palazzi combaciano al
+         pixel, o si vedrebbe una doppia immagine. -->
+    <canvas class="fx" id="seqFront" aria-hidden="true"></canvas>
+
+    <!-- Griglia a fili -->
+    <div class="grid" id="grid" aria-hidden="true">
+      <span class="grid__v"></span>
+      <span class="grid__h-left"></span>
+      <span class="grid__h-right"></span>
+      <span class="grid__nav-rule"></span>
+    </div>
+
+    <!-- Marchio: si trasforma nella vista zenitale del palazzo -->
+    <div class="logo-morph" id="logoMorph" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="-1.2 -1.2 2.4 2.4">
+        <g fill="none" stroke-linecap="round">
+          <circle class="m-ring" cx="0" cy="0" r="0.932" stroke-width="0.136"/>
+          <path class="m-mono" d="M 0.3527 -0.8412
+                   A 0.95 0.95 0 0 0 -0.155 0
+                   A 0.74 0.74 0 0 1 -0.5084 0.631" stroke-width="0.105"/>
+          <path class="m-mono" d="M 0.5827 -0.5501
+                   A 0.534 0.534 0 1 0 0.5827 0.5161" stroke-width="0.105"/>
+        </g>
+      </svg>
+    </div>
+
+
+    <!-- Titolo display -->
+    <!-- Il titolo è in TRE blocchi, non in due righe piene: COSTRUITO in
+         alto a sinistra, PER a destra a metà altezza, RESTARE in basso
+         nella stessa colonna di COSTRUITO. I vuoti fra le parole sono il
+         punto: è lì che si vede la torre.
+         `data-blocchi` dice quante parole ci sono — le copy alternative
+         (?copy=2, ?copy=3) ne hanno due e tornano al vecchio alternato. -->
+    <div class="hero">
+      <h1 class="display" id="display" data-blocchi="3">
+        <!-- Tutte le lettere stanno DIETRO il palazzo, anche la I: il
+             committente l'ha chiesto (2026-09-23). Per tenere di nuovo
+             intera una lettera basta avvolgerla in <span class="su">:
+             js/scroll.js la ritaglia via dal canvas davanti. -->
+        <span class="line line--1"><span class="line__in" data-copy="h1a">Costruito</span></span>
+        <span class="line line--2"><span class="line__in line--front" data-copy="h1b">per</span></span>
+        <span class="line line--3"><span class="line__in" data-copy="h1c">restare</span></span>
+      </h1>
+    </div>
+
+    <!-- Lockup di brand -->
+    <div class="lockup">
+      <span class="lockup__a" data-copy="lockupA2"><span data-anni>46</span> ANNI DI</span>
+      <span class="lockup__b" data-copy="lockupB2">CANTIERI</span>
+    </div>
+
+    <!-- Micro-UI d'angolo -->
+    <div class="corner corner--l"><span class="lbl" data-copy="microL">[ SCORRI ]</span></div>
+
+  </main>
+
+  
+</div>
+
+<!-- Header — fuori dallo stage E fuori da .app, apposta.
+     Due stacking context lo tenevano prigioniero, uno dentro l'altro:
+     .stage per via di `container-type:inline-size` (che porta con sé
+     `contain:layout`) e .app perché `position:fixed` ne crea uno
+     SEMPRE, anche senza z-index. Là dentro l'header restava sotto le
+     sezioni con fondo opaco per quanto alto fosse il suo z-index —
+     verificato sui pixel: con z-index:9999 non cambiava nulla, con
+     #page a z-index:-1 ricompariva.
+     Qui è figlio di <body>, partecipa allo stacking context radice e
+     il suo z-index:5 batte lo z-index:1 di #page. Nella reference
+     l'header resta visibile su tutte le schermate (img-32, img-35). -->
+  <header class="hd">
+    <!-- Marchio in due varianti da far scegliere al committente:
+         data-logo="b" = simbolo + testo (default), "a" = solo simbolo.
+         Si commuta dal vivo con ?logo=a — vedi js/varianti.js.
+         Il simbolo è assets/logo/marchio.svg, inline perché
+         currentColor possa virare col tema. -->
+    <a class="hd__logo" href="#hero-spacer" data-logo="b">
+      <span class="hd__mark" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="-1.2 -1.2 2.4 2.4">
+          <g fill="none" stroke="currentColor" stroke-linecap="round">
+            <circle cx="0" cy="0" r="0.932" stroke-width="0.136"/>
+            <path d="M 0.3527 -0.8412
+                     A 0.95 0.95 0 0 0 -0.155 0
+                     A 0.74 0.74 0 0 1 -0.5084 0.631" stroke-width="0.105"/>
+            <path d="M 0.5827 -0.5501
+                     A 0.534 0.534 0 1 0 0.5827 0.5161" stroke-width="0.105"/>
+          </g>
+        </svg>
+      </span>
+      <!-- Il nome del brand è SALZILLO COSTRUZIONI, in quest'ordine
+           (corretto il 2026-09-23): prima il nome, poi il mestiere. -->
+      <span class="hd__wordmark">
+        <span class="hd__nome" data-copy="logoA">salzillo</span>
+        <span class="hd__tipo" data-copy="logoB">costruzioni</span>
+      </span>
+    </a>
+    <!-- Le quattro tappe del sito. Non sono pagine separate: il sito
+         resta uno solo che scorre, e la voce accesa è quella della
+         sezione in cui ti trovi (js/nav.js). Le opere hanno tre
+         categorie, che si aprono passando sopra la voce. -->
+    <nav class="hd__center nav" id="navMenu" aria-label="Sezioni del sito">
+      <a class="nav__voce" href="#hero-spacer" data-sez="intro">
+        <span class="lbl" data-copy="navCenter">Introduzione</span>
+      </a>
+      <!-- Apostrofo e non accento: la voce è in maiuscolo via CSS. -->
+      <a class="nav__voce" href="#s-perche" data-sez="perche">
+        <span class="lbl">Perche' noi</span>
+      </a>
+      <div class="nav__gruppo">
+        <a class="nav__voce" href="#s-cases" data-sez="opere"
+           aria-expanded="false" aria-controls="navOpere">
+          <span class="lbl">Opere</span>
+        </a>
+        <div class="nav__sub" id="navOpere">
+          <a class="nav__sotto" href="#s-ristrutturazioni"><span class="lbl">Ristrutturazioni</span></a>
+          <a class="nav__sotto" href="#s-cantieri"><span class="lbl">Cantieri</span></a>
+          <a class="nav__sotto" href="#s-vendita"><span class="lbl">In vendita</span></a>
+        </div>
+      </div>
+      <a class="nav__voce" href="#s-storia" data-sez="storia">
+        <span class="lbl">Storia</span>
+      </a>
+      <a class="nav__voce" href="#s-contatti" data-sez="contatti">
+        <span class="lbl">Contatti</span>
+      </a>
+    </nav>
+    <a class="hd__right" href="#s-vendita">
+      <span class="lbl" data-copy="navRight">IN VENDITA</span>
+      <span class="icon-blocks"><i></i><i></i></span>
+    </a>
+    <!-- Solo sul telefono: il menu si apre a tutto schermo da qui
+         (committente, 2026-09-25). Lo comanda js/nav.js. -->
+    <button class="hd__burger" type="button" aria-label="Apri il menu"
+            aria-expanded="false" aria-controls="navMenu">
+      <span></span><span></span>
+    </button>
+  </header>
+
+<!-- ═══════════════ PAGINA CHE SCORRE ═══════════════ -->
+<!-- WhatsApp, sempre visibile in basso a destra (committente, 2026-09-24):
+     tasto minimal nero col bordo blu del marchio. Apre la chat col numero
+     aziendale (334 358 0173). -->
+<a class="wa tondo" href="https://wa.me/393296380380" target="_blank" rel="noopener" aria-label="Scrivici su WhatsApp">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+</a>
+
+<main id="page">
+
+  <div id="scroll-driver">
+    <!-- La hero è vuota: il contenuto vive nello stage fisso.
+         Lo spazio di scroll guida la discesa della camera. -->
+    <section id="hero-spacer" aria-hidden="true"></section>
+
+    <!-- 01 — pinned: il testo tiene, la camera orbita dietro.
+         Con il bake dello step 04 la discesa finisce su un pavimento
+         CHIARO, quindi questa sezione è ora una schermata chiara come
+         la s02 della reference: la virata insegue il render, e la sua
+         finestra è quella in cui il render passa a studio (u 0,50 →
+         0,88 della sequenza, cioè da 'top top' a 'top -228%'). -->
+    <section id="s01-arte" class="chapter chapter--nota-alta"
+             data-flip="1" data-flip-start="top top" data-flip-end="top -120%">
+      <div class="sticky">
+        <p class="sec-label sec-label--vira fade-in"><span class="cap-num">[ 01 ]</span>L'ARTE DI COSTRUIRE</p>
+        <!-- Accento con l'apostrofo, non con il diacritico: questo blocco è
+             `text-transform:uppercase` e in maiuscolo si scrive SOLIDITA'.
+             Va cambiata la stringa, non c'è un modo CSS di farlo. Negli
+             elementi in minuscolo (i .sec-body) l'accento vero resta. -->
+        <h2 class="sec-display sec-display--vira">
+          <span class="line"><span class="line__in">Solidita'</span></span>
+          <span class="line"><span class="line__in">e design</span></span>
+        </h2>
+        <p class="sec-body sec-body--vira sec-body--dopo">
+          <span class="frase">Da <span data-anni>46</span> anni diamo forma al vostro bene più prezioso.</span>
+          <span class="frase">Traduciamo la vostra visione in un <span class="blu">rifugio sicuro</span>, accompagnandovi
+          con cura in ogni passo del percorso.</span>
+          <span class="frase">Perché ciò che è destinato a durare per sempre, si costruisce una <span class="blu">volta sola</span>.</span>
+        </p>
+      </div>
+    </section>
+
+    <!-- 02 — è la SEZIONE 4 della reference: notte, oggetto a sinistra,
+         testo a destra (img-10). Lo slot dell'oggetto è vuoto: lo
+         riempie lo step 05 col mattone.
+
+         QUI c'era l'interstiziale #s-via («Un modo di costruire / che
+         resta», l'equivalente di "Paving the way"): tolto su richiesta
+         del committente il 2026-09-23. Non portava solo del testo —
+         era la tappa che riporta la palette a NOTTE e l'unica che
+         ritaglia #seq, cioè che si mangia il fondo cinematico rimasto
+         congelato sul pavimento chiaro. Quei due compiti sono passati
+         qui sotto, con le stesse soglie di prima: il top di questa
+         sezione cade esattamente dove cadeva il top di #s-via, quindi
+         i tempi della virata non cambiano. -->
+    <!-- Dal 2026-09-24 la 02 e la 03 sono CHIARE, col mattone nero: la
+         virata a notte non c'è più. La tenda resta, dello stesso chiaro,
+         e cala dall'alto a coprire la torre — il fondo cambia dall'alto,
+         come il mattone che entra. -->
+    <section id="s02-struttura" class="chapter chapter--m chapter--duo" data-rivela="top 165%|top 10%"
+             data-flip="1" data-flip-from="1" data-flip-start="top 130%" data-flip-end="top 60%"
+             data-flip-curtain="#seq,#seqFront,.bg__scrim">
+      <div class="sticky">
+        <div class="duo__testo">
+          <!-- Il mattone di Salzillo (committente, 2026-09-24). Lui lo chiama
+               «Siparex da 36»: il prodotto è Siporex (confermato dal cliente il
+               2026-09-24), blocco in calcestruzzo CELLULARE autoclavato, non
+               laterizio. Classe A4 e testo: scritti dal committente. -->
+          <p class="sec-label fade-in"><span class="cap-num">[ 02 ]</span>MURATURA</p>
+          <h2 class="sec-display">
+            <span class="line"><span class="line__in">Sostenibilita'</span></span>
+            <span class="line"><span class="line__in is-max">e mattone</span></span>
+          </h2>
+          <div class="duo__para">
+            <p class="sec-body sec-body--dopo">
+              Costruiamo con blocchi in calcestruzzo cellulare <span class="blu">Siporex</span> da
+              <span class="blu">36&nbsp;cm</span> perché crediamo nella forza della materia pura.
+              Una scelta certificata che vi
+              regala totale assenza di umidità, temperature ideali in ogni
+              stagione e il traguardo della <span class="blu">Classe A4</span>.
+            </p>
+          </div>
+        </div>
+        <div class="duo__oggetto" aria-hidden="true"><!-- slot oggetto — step 05 --></div>
+      </div>
+    </section>
+
+    <!-- 03 — SEZIONE 5 della reference: l'immagine speculare della 4.
+         I lati si scambiano e il fondo vira a cemento nella stessa
+         transizione, con la tenda che cala dall'alto (img-13, img-15).
+         data-flip-curtain elenca ciò che va ritagliato al negativo:
+         sotto il fronte resta la scena vecchia. -->
+    <!-- Il 03 è ora gemello del 02 (committente, 2026-09-24): notte,
+         mattone a sinistra e testo a destra. Non è più speculare e non
+         porta più la virata a cemento: quella, con la sua tenda e le
+         stesse soglie, è passata a #s-piuma. -->
+    <section id="s03-finiture" class="chapter chapter--m chapter--duo" data-rivela="top 165%|top 10%"
+             data-flip="1" data-flip-from="1">
+      <div class="sticky">
+        <div class="duo__testo">
+          <p class="sec-label fade-in"><span class="cap-num">[ 03 ]</span>L'ANIMA DEI DETTAGLI</p>
+          <h2 class="sec-display">
+            <span class="line"><span class="line__in">Sostanza</span></span>
+            <span class="line"><span class="line__in is-max">e forma</span></span>
+          </h2>
+          <div class="duo__para">
+            <p class="sec-body sec-body--dopo">
+              Ogni materiale è scelto per resistere, custodire l'edificio e
+              valorizzare gli ambienti. Un abbraccio estetico progettato per
+              mantenere intatto il suo fascino. Perché il <span class="blu">lusso</span> più autentico
+              è una <span class="blu">perfezione</span> che sfida il passare degli anni.
+            </p>
+          </div>
+        </div>
+        <div class="duo__oggetto" aria-hidden="true"><!-- slot oggetto — step 05 --></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ── Capitolo piuma (come "Defy gravity with Elegance") ──────
+       Il fondo cinematico si spegne, resta il campo di filamenti,
+       e la notte vira a cemento mentre le parole si accendono una
+       alla volta sullo scroll. La virata è dichiarata qui: il
+       driver la legge da data-flip (js/scroll.js → initTheme). -->
+  <!-- La virata notte→cemento è qui (dal 2026-09-24; prima stava sul
+       capitolo 03): cala dall'alto come una tenda mentre il 03 esce. -->
+  <!-- Dal 2026-09-24 anche la 02 e la 03 sono chiare: qui non vira più
+       niente, il cemento prosegue. -->
+  <section id="s-piuma" data-flip="1" data-flip-from="1">
+    <div class="sticky sticky--mid">
+      <!-- Capitolo C: il mattone si schianta qui, al centro-sinistra,
+           mentre il titolo si accende riga per riga a destra. -->
+      <div class="piuma__oggetto" aria-hidden="true"></div>
+      <!-- La corsa del faretto è tarata sulla caduta, non sulla
+           sezione: FINISCE al 43,4% dell'altezza, che è esattamente
+           dove il mattone tocca il pavimento (la caduta arriva a
+           U_IMPATTO 0,62 della sua corsa, che finisce al 70%). Lì il
+           faretto si ferma — `data-ignite-fine="ultima"` — e GRAVITA'
+           resta accesa col pallino accanto per tutto il resto della
+           sezione, fino alla schermata dopo. Entrambe le misure
+           partono da `top top` e sono in percentuale della sezione:
+           così l'incontro regge a qualunque schermo. -->
+      <h2 class="sec-display sec-display--st ignite"
+          data-ignite-start="top 130%" data-ignite-end="top -74.4%"
+          data-ignite-start-m="top 95%" data-ignite-end-m="bottom 22%"
+          data-ignite-fine="ultima">
+        <!-- Quattro righe, e l'ultima è UNA parola sola: il faretto si
+             ferma su «GRAVITA'» nell'istante in cui il mattone tocca il
+             pavimento (la taratura sta in js/scroll.js → initBrick). -->
+        <span class="line"><span class="line__in">Sfidiamo</span></span>
+        <span class="line"><span class="line__in">tempo</span></span>
+        <span class="line"><span class="line__in">e</span></span>
+        <span class="line"><span class="line__in">gravita'</span></span>
+      </h2>
+    </div>
+  </section>
+
+  <!-- QUI c'erano le due schermate della domanda («E se una casa durasse
+       più / di chi la costruisce?»): tolte su richiesta del committente il
+       2026-09-23. La virata che riportava la notte dopo il mattone, con
+       la sua tenda, è passata a #s-perche, che ne ha preso il posto. -->
+
+  <!-- Perché Salzillo (come "Why choose composites") — si rientra nella notte.
+       Viene subito dopo il mattone (spostata prima delle opere il
+       2026-09-23): la virata cemento→notte è quella che stava sulla
+       cerniera, con la sua tenda e le stesse soglie, perché il top di
+       questa sezione cade dove cadeva il suo. -->
+  <!-- Dal 2026-09-24 non c'è più la tenda: la sezione è un pannello
+       notte che SALE sopra la gravità ferma (margine −100vh in
+       css/sections.css) e la copre, mattone compreso. I colori notte
+       li porta il pannello; --t (nav, resto della pagina) vira solo
+       negli ultimi 8%, quando il cemento è già quasi tutto coperto. Un passaggio solo,
+       invece di tenda + schermata vuota. -->
+  <section id="s-perche" data-pagina="morbida" data-rivela="top 95%|top 35%"
+           data-flip="0" data-flip-start="top 8%" data-flip-end="top top">
+    <div class="perche">
+      <!-- 6.6 — Sei chip che orbitano attorno al titolone, come img-35.
+           I quattro motivi erano già scritti e restano; i due in più
+           arrivano dai servizi (opere speciali, consolidamenti), non
+           sono inventati. In fondo la CTA arancione: l'unico fondo
+           colorato di tutto il sito. -->
+      <p class="sec-label fade-in">PERCHE' NOI</p>
+      <div class="orbita">
+        <h2 class="orbita__titolo">
+          <span class="line"><span class="line__in">Perche'</span></span>
+          <span class="line"><span class="line__in is-max">Salzillo?</span></span>
+        </h2>
+        <details class="chip-o chip-o--1 fade-in">
+          <summary><i class="chip-o__i"></i><span>Direzione lavori interna</span><b>+</b></summary>
+          <p class="sec-body">Chi calcola e chi costruisce sono la stessa impresa: nessun passaggio di mano.</p>
+        </details>
+        <details class="chip-o chip-o--2 fade-in">
+          <summary><i class="chip-o__i"></i><span>Materiali certificati</span><b>+</b></summary>
+          <p class="sec-body">Siporex da 36 cm, cartongesso e finiture scelte una per una: niente materiali di ripiego, solo ciò che dura.</p>
+        </details>
+        <details class="chip-o chip-o--3 fade-in">
+          <summary><i class="chip-o__i"></i><span>Un solo referente</span><b>+</b></summary>
+          <p class="sec-body">Dal preventivo alla consegna parli sempre con la stessa persona.</p>
+        </details>
+        <details class="chip-o chip-o--4 fade-in">
+          <summary><i class="chip-o__i"></i><span><span data-anni>46</span> anni di cantieri</span><b>+</b></summary>
+          <p class="sec-body">Edifici consegnati decenni fa che stanno ancora lì, dritti.</p>
+        </details>
+        <details class="chip-o chip-o--5 fade-in">
+          <summary><i class="chip-o__i"></i><span>Opere speciali</span><b>+</b></summary>
+          <p class="sec-body">Sbancamenti, muri di sostegno, sottofondazioni.</p>
+        </details>
+        <details class="chip-o chip-o--6 fade-in">
+          <summary><i class="chip-o__i"></i><span>Consolidamenti</span><b>+</b></summary>
+          <p class="sec-body">Adeguamenti statici e antisismici.</p>
+        </details>
+      </div>
+      <a class="btn-accent perche__cta fade-in" href="#s-contatti">Parliamo del tuo cantiere</a>
+    </div>
+  </section>
+
+  <!-- Servizi & certificazioni (come "Standards", filtrabile) -->
+  <section id="s-servizi" data-pagina="morbida">
+    <div class="servizi">
+      <p class="sec-label fade-in">SERVIZI &amp; CERTIFICAZIONI</p>
+      <ul class="servizi__grid">
+        <li class="svc fade-in" data-cat="nuove"><h3 class="svc__t">Edifici residenziali</h3><p class="sec-body">Palazzine e villette chiavi in mano.</p></li>
+        <li class="svc fade-in" data-cat="nuove"><h3 class="svc__t">Edifici commerciali</h3><p class="sec-body">Locali e capannoni su misura.</p></li>
+        <li class="svc fade-in" data-cat="ristrutturazioni"><h3 class="svc__t">Ristrutturazioni complete</h3><p class="sec-body">Rifacimenti integrali di unità e condomini.</p></li>
+        
+        <li class="svc fade-in" data-cat="ca"><h3 class="svc__t">Strutture in c.a.</h3><p class="sec-body">Fondazioni, telai, solai in opera.</p></li>
+        
+        <li class="svc fade-in" data-cat="muratura"><h3 class="svc__t">Muratura in Siporex</h3><p class="sec-body">Blocchi da 36&nbsp;cm in calcestruzzo cellulare. Niente umidità, clima stabile.</p></li>
+        <li class="svc fade-in" data-cat="muratura"><h3 class="svc__t">Tramezzi in cartongesso</h3><p class="sec-body">Posa veloce, senza macerie. Isola meglio e pesa meno della muratura.</p></li>
+        <li class="svc fade-in" data-cat="energia"><h3 class="svc__t">Classe energetica elevata</h3><p class="sec-body">Involucro e impianti pensati insieme. Fino alla Classe A4.</p></li>
+        <li class="svc fade-in" data-cat="cert"><h3 class="svc__t">ISO 9001</h3><p class="sec-body">Qualità certificata. Ogni fase del cantiere è controllata.</p></li><!-- da confermare col committente: norma ed ente certificatore -->
+      </ul>
+    </div>
+  </section>
+
+  <!-- ── Scelta dei lavori: tre card su fondo notte ──────────────
+       Pagina ferma (js/pagine.js): le card arrivano col diagramma
+       intero e il clic porta alla loro galleria. La notte arriva già
+       da "perché noi" e dai servizi: la tappa dichiara solo lo stato. -->
+  <!-- Le Opere tornano guidate dallo scroll (committente, 2026-09-24): i
+       disegni si smontano, la prima card si apre a pieno schermo e le
+       gallerie scorrono da destra a sinistra. Non sono più pagine. -->
+  <section id="s-cases" data-flip="0" data-flip-from="0">
+    <div class="cases-veil" id="casesVeil" aria-hidden="true"></div>
+    <div class="sticky sticky--cases">
+      <div class="cases-choice">
+        <a class="case-card" href="#s-ristrutturazioni" data-dia="cerchi">
+          <canvas class="case-card__dia" aria-hidden="true"></canvas>
+          <h3 class="case-card__t">Ristrutturazioni</h3>
+          <footer class="case-card__ft">
+            <span class="lbl">Servizi</span><span class="lbl">[ 6 ]</span>
+          </footer>
+        </a>
+        <a class="case-card" href="#s-cantieri" data-dia="spirale">
+          <canvas class="case-card__dia" aria-hidden="true"></canvas>
+          <h3 class="case-card__t">Nuove<br>costruzioni</h3>
+          <footer class="case-card__ft">
+            <span class="lbl">Cantieri</span><span class="lbl">[ 5 ]</span>
+          </footer>
+        </a>
+        <a class="case-card" href="#s-vendita" data-dia="squadra">
+          <canvas class="case-card__dia" aria-hidden="true"></canvas>
+          <h3 class="case-card__t">In vendita</h3>
+          <footer class="case-card__ft">
+            <span class="lbl">Immobili</span><span class="lbl">[ 3 ]</span>
+          </footer>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ristrutturazioni PRIMA delle nuove costruzioni (committente,
+       2026-09-30): è la prima galleria dopo le card, e porta lei la
+       virata notte→cemento (stessi data-flip di Cantieri).
+       6.5 — La sezione gemella delle ristrutturazioni. La struttura c'è;
+       le foto NO: in assets/cantieri/ ci sono solo i quattro cantieri di
+       nuova costruzione, e riusarli qui sarebbe inventare progetti.
+       I posti restano dichiarati, come gli altri placeholder in pagina. -->
+<section id="s-ristrutturazioni" data-flip="1" data-flip-from="1">
+    <!-- Disposizione di Perché noi, su fondo chiaro (committente,
+         2026-09-30): il titolo al centro e i sei servizi che gli orbitano. -->
+    <div class="perche">
+      <p class="sec-label fade-in">SERVIZI/ RISTRUTTURAZIONI</p>
+      <div class="orbita">
+        <h2 class="orbita__titolo orbita__titolo--lungo">
+          <span class="line"><span class="line__in">Ristrutturazioni</span></span>
+          <span class="orbita__prezzo"><small>da</small>500€/mq</span>
+        </h2>
+        <details class="chip-o chip-o--1 fade-in">
+          <summary><i class="chip-o__i"></i><span>Chiavi in mano</span><b>+</b></summary>
+          <p class="sec-body">Progetto, pratiche, cantiere e finiture con un'unica impresa.</p>
+        </details>
+        <details class="chip-o chip-o--2 fade-in">
+          <summary><i class="chip-o__i"></i><span>Facciate e coperture</span><b>+</b></summary>
+          <p class="sec-body">Prospetti, balconi, tetti e impermeabilizzazioni.</p>
+        </details>
+        <details class="chip-o chip-o--3 fade-in">
+          <summary><i class="chip-o__i"></i><span>Consolidamento e antisismica</span><b>+</b></summary>
+          <p class="sec-body">Rinforzi di solai e fondazioni, adeguamenti statici.</p>
+        </details>
+        <details class="chip-o chip-o--4 fade-in">
+          <summary><i class="chip-o__i"></i><span>Efficientamento energetico</span><b>+</b></summary>
+          <p class="sec-body">Cappotto, infissi e isolamento per una classe energetica elevata.</p>
+        </details>
+        <details class="chip-o chip-o--5 fade-in">
+          <summary><i class="chip-o__i"></i><span>Pareti in cartongesso</span><b>+</b></summary>
+          <p class="sec-body">Tramezzi e controsoffitti veloci, puliti, isolati.</p>
+        </details>
+        <details class="chip-o chip-o--6 fade-in">
+          <summary><i class="chip-o__i"></i><span>Interni e finiture</span><b>+</b></summary>
+          <p class="sec-body">Bagni, cucine, pavimenti e impianti.</p>
+        </details>
+      </div>
+      <a class="btn-accent perche__cta fade-in" href="#s-contatti" data-messaggio="Buongiorno, vorrei chiedere un preventivo per una ristrutturazione. Potremmo fissare un sopralluogo?">Chiedi un sopralluogo</a>
+    </div>
+  </section>
+
+  <!-- Cantieri: galleria orizzontale, su cemento (come s10 della reference).
+       Porta lei la virata notte→cemento: prima la portava l'apertura
+       della card, tolta quando le opere sono diventate pagine ferme
+       (2026-09-23). La virata si compie durante lo scorrimento animato
+       che porta qui. -->
+  <section id="s-cantieri" data-flip="1" data-flip-from="1">
+    <div class="sticky sticky--wide galleria">
+      <!-- 6.4 — Il nome del progetto sta IN ALTO AL CENTRO e cambia
+           mentre la track scorre: è il «nome che esce sopra» della
+           reference (img-32). La categoria resta ferma in basso a
+           sinistra. Le didascalie per riga non esistono più. -->
+      <h3 class="galleria__nome" id="galleriaNome">Via Torri</h3>
+      <div class="cases-track" data-nome-out="#galleriaNome">
+        <article class="case" data-nome="Via Torri">
+          <img src="assets/cantieri/via-torre/01.jpg" alt="Cantiere Via Torri" loading="lazy">
+          <span class="case__n">[ 1 ]</span>
+          <a class="case__apri" href="#progetto/via-torre" data-progetto="via-torre" aria-label="Apri il progetto Via Torri"><span>Apri progetto &rarr;</span></a>
+        </article>
+        <article class="case" data-nome="Villette Portico">
+          <img src="assets/cantieri/villette-portico/01.jpg" alt="Villette con portico" loading="lazy">
+          <span class="case__n">[ 2 ]</span>
+          <a class="case__apri" href="#progetto/villette-portico" data-progetto="villette-portico" aria-label="Apri il progetto Villette Portico"><span>Apri progetto &rarr;</span></a>
+        </article>
+        <article class="case" data-nome="Residence Curti">
+          <img src="assets/cantieri/residence-curti/01.jpg" alt="Residence Curti" loading="lazy">
+          <span class="case__n">[ 3 ]</span>
+          <a class="case__apri" href="#progetto/residence-curti" data-progetto="residence-curti" aria-label="Apri il progetto Residence Curti"><span>Apri progetto &rarr;</span></a>
+        </article>
+        <article class="case" data-nome="Via Gorizia">
+          <img src="assets/cantieri/via-gorizia/02.jpg" alt="Cantiere Via Gorizia, Mondragone" loading="lazy">
+          <span class="case__n">[ 4 ]</span>
+          <a class="case__apri" href="#progetto/via-gorizia" data-progetto="via-gorizia" aria-label="Apri il progetto Via Gorizia"><span>Apri progetto &rarr;</span></a>
+        </article>
+        <!-- Via Novelli, in costruzione (committente, 2026-09-30): le foto arrivano dopo -->
+        <article class="case case--vuota" data-nome="Via Novelli">
+          <div class="case__posto"><span class="todo">[DA CONFERMARE: foto]</span></div>
+          <span class="case__n">[ 5 ]</span>
+          <a class="case__apri" href="#progetto/via-novelli" data-progetto="via-novelli" aria-label="Apri il progetto Via Novelli"><span>Apri progetto &rarr;</span></a>
+        </article>
+      </div>
+      <p class="galleria__cat"><span>CANTIERI/</span>NUOVE COSTRUZIONI</p>
+      <!-- salta il resto della galleria (committente, 2026-09-24) -->
+      <a class="salta" href="#s-vendita">Vai a In vendita <span aria-hidden="true">&darr;</span></a>
+    </div>
+  </section>
+
+  <!-- In vendita — la terza categoria delle opere. Non è una galleria
+       come le due sorelle: qui l'immobile va VENDUTO, quindi ogni posto
+       è una scheda con i dati che un compratore cerca (zona, superficie,
+       piano, stato) e una richiesta di informazioni che porta al form
+       già compilato col nome dell'immobile (js/nav.js).
+       I dati NON ci sono: restano dichiarati come gli altri placeholder,
+       in attesa dell'elenco del committente. -->
+  <section id="s-vendita" data-pagina="morbida" data-flip="1" data-flip-from="1">
+    <div class="vendita">
+      <p class="sec-label sec-label--cases fade-in">CANTIERI/ IN VENDITA</p>
+      <h2 class="sec-display sec-display--sm sec-display--blu fade-in">
+        <span class="line"><span class="line__in">Disponibili ora</span></span>
+      </h2>
+      <!-- Dati di prova PLAUSIBILI, non reali (2026-09-30): foto prese dalle
+           nuove costruzioni, zona/superficie/piano/stato inventati. Da
+           sostituire con l'elenco del committente prima del lancio. -->
+      <ul class="vendita__grid">
+        <li class="imm fade-in">
+          <div class="imm__foto"><img src="assets/cantieri/via-torre/03.jpg" alt="Trilocale · Via Torri" loading="lazy"></div>
+          <h3 class="imm__t">Trilocale · Via Torri</h3>
+          <dl class="imm__dati">
+            <div><dt class="lbl">Zona</dt><dd class="imm__v">Portico di Caserta</dd></div>
+            <div><dt class="lbl">Superficie</dt><dd class="imm__v">95 m²</dd></div>
+            <div><dt class="lbl">Piano</dt><dd class="imm__v">2°</dd></div>
+            <div><dt class="lbl">Stato</dt><dd class="imm__v">Nuovo · Classe A4</dd></div>
+          </dl>
+          <a class="imm__cta" href="#s-contatti" data-immobile="Trilocale · Via Torri">Chiedi informazioni</a>
+        </li>
+        <li class="imm fade-in">
+          <div class="imm__foto"><img src="assets/cantieri/residence-curti/02.jpg" alt="Attico · Residence Curti" loading="lazy"></div>
+          <h3 class="imm__t">Attico · Residence Curti</h3>
+          <dl class="imm__dati">
+            <div><dt class="lbl">Zona</dt><dd class="imm__v">Curti (CE)</dd></div>
+            <div><dt class="lbl">Superficie</dt><dd class="imm__v">140 m² + terrazzo</dd></div>
+            <div><dt class="lbl">Piano</dt><dd class="imm__v">3° · ultimo</dd></div>
+            <div><dt class="lbl">Stato</dt><dd class="imm__v">Nuovo · Classe A4</dd></div>
+          </dl>
+          <a class="imm__cta" href="#s-contatti" data-immobile="Attico · Residence Curti">Chiedi informazioni</a>
+        </li>
+        <li class="imm fade-in">
+          <div class="imm__foto"><img src="assets/cantieri/villette-portico/02.jpg" alt="Villa · Villette Portico" loading="lazy"></div>
+          <h3 class="imm__t">Villa · Villette Portico</h3>
+          <dl class="imm__dati">
+            <div><dt class="lbl">Zona</dt><dd class="imm__v">Portico di Caserta</dd></div>
+            <div><dt class="lbl">Superficie</dt><dd class="imm__v">180 m² + giardino</dd></div>
+            <div><dt class="lbl">Piano</dt><dd class="imm__v">Terra + 1°</dd></div>
+            <div><dt class="lbl">Stato</dt><dd class="imm__v">Consegna 2027</dd></div>
+          </dl>
+          <a class="imm__cta" href="#s-contatti" data-immobile="Villa · Villette Portico">Chiedi informazioni</a>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Storia (come "History from 1950") — torna la notte. Dopo lo
+       spostamento di perché noi e servizi prima delle opere, qui si
+       arriva dal cemento di "in vendita": la virata che era di
+       #s-perche è passata a questa sezione. -->
+  <section id="s-storia"
+           data-flip="0" data-flip-start="top bottom" data-flip-end="top 78%">
+    <div class="sticky sticky--wide">
+      <p class="sec-label sec-label--cases fade-in">LA STORIA · DAL 1980</p>
+      <div class="storia-track">
+        <!-- Le opere dal 1980 (committente, 2026-09-24): titoli da
+             salzillo/storia-titoli.md, foto da salzillo/foto salzillo/imageN.png
+             → assets/storia/NN.webp, stesso numero. -->
+        <article class="tappa">
+          <img class="tappa__foto" src="assets/storia/01.webp" alt="Residenza a Formia (Vindicio), 1980" loading="lazy">
+          <span class="tappa__anno">1980</span>
+          <p class="tappa__luogo">Formia (Vindicio)</p>
+          <p class="tappa__tipo">Residenza</p>
+        </article>
+        <article class="tappa">
+          <img class="tappa__foto" src="assets/storia/02.webp" alt="4 complessi di villette a schiera a Sperlonga, 1986" loading="lazy">
+          <span class="tappa__anno">1986</span>
+          <p class="tappa__luogo">Sperlonga</p>
+          <p class="tappa__tipo">4 complessi di villette a schiera</p>
+        </article>
+        <article class="tappa">
+          <img class="tappa__foto" src="assets/storia/03.webp" alt="Ville e appartamenti a Telese, 1993" loading="lazy">
+          <span class="tappa__anno">1993</span>
+          <p class="tappa__luogo">Telese</p>
+          <p class="tappa__tipo">Ville e appartamenti</p>
+        </article>
+        <article class="tappa">
+          <img class="tappa__foto" src="assets/storia/04.webp" alt="Condominio a Capodrise, 2002" loading="lazy">
+          <span class="tappa__anno">2002</span>
+          <p class="tappa__luogo">Capodrise</p>
+          <p class="tappa__tipo">Condominio</p>
+        </article>
+        <article class="tappa">
+          <img class="tappa__foto" src="assets/storia/05.webp" alt="Villa a Capodrise, 2003" loading="lazy">
+          <span class="tappa__anno">2003</span>
+          <p class="tappa__luogo">Capodrise</p>
+          <p class="tappa__tipo">Villa</p>
+        </article>
+        <article class="tappa">
+          <img class="tappa__foto" src="assets/storia/06.webp" alt="Villette a schiera a Sperlonga, 2004" loading="lazy">
+          <span class="tappa__anno">2004</span>
+          <p class="tappa__luogo">Sperlonga</p>
+          <p class="tappa__tipo">Villette a schiera</p>
+        </article>
+        <article class="tappa">
+          <img class="tappa__foto" src="assets/storia/07.webp" alt="Capannone industriale a Marcianise, 2005" loading="lazy">
+          <span class="tappa__anno">2005</span>
+          <p class="tappa__luogo">Marcianise</p>
+          <p class="tappa__tipo">Capannone industriale</p>
+        </article>
+        <article class="tappa">
+          <img class="tappa__foto" src="assets/storia/08.webp" alt="Condominio a Maddaloni, 2006" loading="lazy">
+          <span class="tappa__anno">2006</span>
+          <p class="tappa__luogo">Maddaloni</p>
+          <p class="tappa__tipo">Condominio</p>
+        </article>
+        <article class="tappa">
+          <img class="tappa__foto" src="assets/storia/09.webp" alt="Capannone industriale a Marcianise, 2010" loading="lazy">
+          <span class="tappa__anno">2010</span>
+          <p class="tappa__luogo">Marcianise</p>
+          <p class="tappa__tipo">Capannone industriale</p>
+        </article>
+        <article class="tappa">
+          <img class="tappa__foto" src="assets/storia/10.webp" alt="Condominio a San Tammaro, 2011" loading="lazy">
+          <span class="tappa__anno">2011</span>
+          <p class="tappa__luogo">San Tammaro</p>
+          <p class="tappa__tipo">Condominio</p>
+        </article>
+        <article class="tappa">
+          <img class="tappa__foto" src="assets/storia/11.webp" alt="Condominio a San Prisco, 2012" loading="lazy">
+          <span class="tappa__anno">2012</span>
+          <p class="tappa__luogo">San Prisco</p>
+          <p class="tappa__tipo">Condominio</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contatti -->
+  <section id="s-contatti" data-pagina="morbida">
+    <div class="contact">
+      <h2 class="sec-display sec-display--sm">
+        <span class="line"><span class="line__in">Parliamone</span></span>
+      </h2>
+      <div class="contact__cols">
+        <div class="contact__block fade-in">
+          <p class="lbl">SEDE</p>
+          <p class="sec-body">Via Rosario Livatino, Zona Industriale<br>Portico di Caserta (CE)</p>
+          <p class="lbl">CONTATTI</p>
+          <p class="sec-body">Ufficio <a class="contact__link" href="tel:+393296380380">329 638 0380</a><br>Gaetano Salzillo <a class="contact__link" href="tel:+393474709172">347 470 9172</a><br>Giuseppe Salzillo <a class="contact__link" href="tel:+393343580173">334 358 0173</a><br><a class="contact__link" href="mailto:salzillocostruzioni@libero.it">salzillocostruzioni@libero.it</a></p>
+          <p class="lbl">SOCIAL</p>
+          <!-- Tasti tondi con lo stesso stile del tasto WhatsApp fisso
+               (committente, 2026-09-24): Instagram e WhatsApp. Facebook non
+               c'è: l'azienda non ha una pagina. -->
+          <div class="social">
+            <a class="tondo" href="https://www.instagram.com/costruzionisalzillo/" target="_blank" rel="noopener" aria-label="Instagram">
+              <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/>
+                <circle cx="17.5" cy="6.5" r="1.1" fill="currentColor" stroke="none"/>
+              </svg>
+            </a>
+            <a class="tondo" href="https://wa.me/393296380380" target="_blank" rel="noopener" aria-label="WhatsApp">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+            </a>
+          </div>
+        </div>
+        <!-- Il modulo non ha un server: compone il messaggio e lo apre su
+             WhatsApp (ufficio) o nella mail del visitatore (committente,
+             2026-09-30). Logica in js/nav.js → modulo. -->
+        <form class="contact__form fade-in" action="#" id="modulo">
+          <label class="lbl" for="cNome">NOME</label>
+          <input id="cNome" type="text" autocomplete="off">
+          <label class="lbl" for="cMail">EMAIL</label>
+          <input id="cMail" type="email" autocomplete="off">
+          <label class="lbl" for="cMsg">MESSAGGIO</label>
+          <textarea id="cMsg" rows="4"></textarea>
+          <div class="contact__invia">
+            <button class="btn-accent" type="submit" value="wa">Invia su WhatsApp</button>
+            <button class="btn-accent btn-accent--vuoto" type="submit" value="mail">Invia per email</button>
+          </div>
+        </form>
+      </div>
+      <footer class="contact__foot">
+        <span class="lbl">SALZILLO COSTRUZIONI</span>
+        <a class="lbl contact__firma" href="https://3-lab.it" target="_blank" rel="noopener">By 3-lab.it</a>
+        <span class="lbl">© 2026</span>
+      </footer>
+    </div>
+  </section>
+
+</main>
+
+<!-- La scheda di un progetto (js/progetti.js): un livello sopra il
+     sito, che sotto resta fermo dov'era (committente, 2026-09-25). -->
+<div class="scheda" id="scheda" role="dialog" aria-modal="true" aria-labelledby="schedaT" hidden>
+  <div class="scheda__barra">
+    <button class="scheda__indietro" type="button"><span aria-hidden="true">&larr;</span> Torna al sito</button>
+  </div>
+  <div class="scheda__corpo">
+    <p class="scheda__lbl"><span>CANTIERI/</span><span class="scheda__cat"></span></p>
+    <h2 class="scheda__t" id="schedaT"></h2>
+    <dl class="scheda__dati">
+      <div><dt class="lbl">Tipo di progetto</dt><dd data-campo="tipo"></dd></div>
+      <div><dt class="lbl">Località</dt><dd data-campo="luogo"></dd></div>
+      <div><dt class="lbl">Stato di avanzamento</dt><dd data-campo="stato"></dd></div>
+    </dl>
+    <div class="scheda__foto"></div>
+  </div>
+</div>
+
+<!-- SplitText non serve più: dallo step 02 la rivelazione del testo
+     lavora per righe e per fronti, non per parole. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/ScrollTrigger.min.js"></script>
+<script src="js/varianti.js?v=4"></script>
+<script src="js/effects/feather.js?v=8"></script>
+<script src="js/effects/diagrams.js?v=9"></script>
+<script src="js/effects/brick.js?v=7"></script>
+<script src="js/effects/nitido.js?v=1"></script>
+<script src="js/type.js?v=13"></script>
+<script src="js/scroll.js?v=69"></script>
+<script src="js/hero.js?v=14"></script>
+<script src="js/nav.js?v=9"></script>
+<script>
+  /* link ancora da completare (WhatsApp, Instagram): non fanno nulla */
+  document.querySelectorAll('a[data-vuoto]').forEach(a=>a.addEventListener('click', e=>e.preventDefault()));
+</script>
+<script src="js/pagine.js?v=5"></script>
+<script src="js/progetti.js?v=3"></script>
+</body>
+</html>

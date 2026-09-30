@@ -1,0 +1,5 @@
+Metti qui il modello 3D come  model.glb
+
+Formato: glTF binario (.glb).
+Da Blender: File > Export > glTF 2.0, formato "glTF Binary".
+Sopra i ~150k triangoli passa da un decimate o esporta con compressione Draco.
