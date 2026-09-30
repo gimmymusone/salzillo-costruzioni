@@ -364,13 +364,15 @@ window.SEQ = (function(){
     const m = metrics(im, j);
 
     if(fondoNuovo){
-      if(gl) gl.disegna(im, m, dpr);
+      /* contesto WebGL perso: il frame non è disegnato, si riprova al giro dopo */
+      let fatto = true;
+      if(gl) fatto = gl.disegna(im, m, dpr);
       else {
         ctx.setTransform(dpr,0,0,dpr,0,0);
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(im, m.dx, m.dy, im.width*m.s, im.height*m.s);
       }
-      state.drawn = idx;
+      if(fatto) state.drawn = idx;
     }
 
     drawFront(j, m, dpr, b);
@@ -893,6 +895,7 @@ window.SEQ = (function(){
      della reference (img-19 → img-22) con un impatto al posto di
      un appoggio. Dal 2026-09-24 è anche un oggetto solo, fisso allo
      schermo, che scende attraverso le tre sezioni. */
+  let misuraCentriPrima = null;
   function initBrick(){
     if(!window.BRICK) return;
     /* Dal 2026-09-24 il mattone è UNO: sta nel fondo fisso
@@ -904,7 +907,9 @@ window.SEQ = (function(){
          posizione di partenza del bake, per tutta la 02 e la 03;
        - caduta: i fotogrammi, dentro la piuma, come prima. */
     const cadutaEl = document.querySelector('.mattone-volo');
-    const caduta = cadutaEl && BRICK.monta(cadutaEl, 0, 1);
+    /* matchMedia richiama initBrick a ogni ritorno sul desktop (resize
+       sotto e sopra i 900px): il canvas si riusa, non se ne monta un altro */
+    const caduta = cadutaEl && (BRICK.slot.find(s=> s.el === cadutaEl) || BRICK.monta(cadutaEl, 0, 1));
     if(!caduta) return;
     BRICK.preload();
 
@@ -956,7 +961,8 @@ window.SEQ = (function(){
       CENTRI[2] = (topDi('#s-piuma') - t02) / innerHeight;
     };
     misuraCentri();
-    ScrollTrigger.addEventListener('refreshInit', misuraCentri);
+    if(misuraCentriPrima) ScrollTrigger.removeEventListener('refreshInit', misuraCentriPrima);
+    ScrollTrigger.addEventListener('refreshInit', misuraCentriPrima = misuraCentri);
     const GIRO = 140;                     /* da −40 a 100: un attraversamento */
     const PRIMA = 40;                     /* velocità d'ingresso nella 02, in % di schermo per schermo */
     const xDa = CENTRI[0] - (A - DA) / PRIMA;
