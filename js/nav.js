@@ -133,6 +133,14 @@ window.NAV = (function(){
         msg.value = `Buongiorno, vorrei informazioni sull'immobile ${a.dataset.immobile}.`;
       });
     });
+    /* Stessa idea per gli altri richiami al form (2026-09-30): il
+       messaggio arriva già scritto in data-messaggio. */
+    document.querySelectorAll('a[data-messaggio]').forEach(a=>{
+      a.addEventListener('click', ()=>{
+        const msg = document.getElementById('cMsg');
+        if(msg) msg.value = a.dataset.messaggio;
+      });
+    });
 
     /* ── caroselli del telefono (2026-09-25) ─────────────────
        Sotto i 900px le gallerie si sfogliano di lato: il nome in alto

@@ -83,7 +83,7 @@
   --divider-solid:var(--divider);
 
   --pre-bg:#AEAAAA;
-  --radius-btn:6px;             /* angoli appena arrotondati (committente, 2026-09-24) */
+  --radius-btn:0;               /* di nuovo rettangolari, angoli vivi (committente, 2026-09-30) */
 
   /* ── Scala del display ─────────────────────────────────────
      La reference scala sull'ALTEZZA del viewport, non sulla
