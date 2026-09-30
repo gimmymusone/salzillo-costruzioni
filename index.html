@@ -4,6 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Salzillo Costruzioni — Costruito per restare</title>
+<script>
+  /* Alla ricarica il sito riparte sempre dall'inizio (2026-09-30): il
+     browser rimetteva la pagina a metà, ma preloader e coreografie
+     ripartono da zero e la schermata si rompeva. Si tiene solo
+     #progetto/…, che apre la scheda sopra il sito. */
+  if('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  if(location.hash && !location.hash.startsWith('#progetto/'))
+    history.replaceState(null, '', location.pathname + location.search);
+  scrollTo(0, 0);
+  addEventListener('pageshow', e=>{ if(e.persisted) location.reload(); });
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=TASA+Orbiter:wght@400..800&display=swap" rel="stylesheet">
