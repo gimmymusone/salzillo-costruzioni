@@ -190,10 +190,7 @@ html{font-size:1.05vw}
 .duo__para{display:grid;grid-template-columns:1fr 1fr;gap:2.2rem;max-width:34rem}
 .duo__para .sec-body{max-width:none}
 .duo__oggetto{position:relative;min-width:0;align-self:stretch}
-/* Le due pelli del mattone: stessa sequenza in due valori, sovrapposte.
-   L'inversione è una dissolvenza fra le due, non una ritintura dei
-   pixel — così il chiaro-su-notte e lo scuro-su-cemento sono quelli
-   veri del bake. La manopola è la stessa dei filamenti (`onLight`). */
+/* il canvas della sequenza del mattone (js/effects/brick.js) */
 .mattone__pel{position:absolute;inset:0;width:100%;height:100%;display:block}
 /* Capitolo C: l'oggetto sta al centro-sinistra, il titolo a destra.
    Col bake trasparente le crepe si aprono sul cemento della pagina e

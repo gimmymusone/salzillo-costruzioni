@@ -892,10 +892,7 @@ window.SEQ = (function(){
      Scende lungo la 4 e la 5 e si schianta nella 6, che è l'arco
      della reference (img-19 → img-22) con un impatto al posto di
      un appoggio. Dal 2026-09-24 è anche un oggetto solo, fisso allo
-     schermo, che scende attraverso le tre sezioni.
-     Il valore lo passa `--t`, la stessa manopola del tema: così
-     l'inversione chiaro↔scuro dell'oggetto non può andare fuori
-     fase col fondo su cui poggia. */
+     schermo, che scende attraverso le tre sezioni. */
   function initBrick(){
     if(!window.BRICK) return;
     /* Dal 2026-09-24 il mattone è UNO: sta nel fondo fisso
@@ -910,9 +907,6 @@ window.SEQ = (function(){
     const caduta = cadutaEl && BRICK.monta(cadutaEl, 0, 1);
     if(!caduta) return;
     BRICK.preload();
-
-    const luce = ()=> parseFloat(
-      getComputedStyle(root).getPropertyValue('--t')) || 0;
 
     /* Dove sta il riquadro del bake, in % della sua altezza. Nel
        fotogramma 0 il mattone occupa la fascia alta (0-17%) e il
@@ -982,8 +976,8 @@ window.SEQ = (function(){
       trigger:'#s02-struttura', start:`top ${-xDa * 100}%`,
       endTrigger:'#s-piuma', end:'top top',
       scrub:true, invalidateOnRefresh:true,
-      onUpdate(self){ posa(attraversa(xDa + (scrollY - self.start) / innerHeight), true); BRICK.draw(U0, luce()); },
-      onRefresh(self){ posa(attraversa(xDa + (scrollY - self.start) / innerHeight), true); BRICK.draw(U0, luce()); }
+      onUpdate(self){ posa(attraversa(xDa + (scrollY - self.start) / innerHeight), true); BRICK.draw(U0); },
+      onRefresh(self){ posa(attraversa(xDa + (scrollY - self.start) / innerHeight), true); BRICK.draw(U0); }
     });
     /* la traslazione si consuma quanto il mattone scende nel bake */
     const inCaduta = p=> posa(A * quota(fot(p)) / quota(U0), false);
@@ -1008,8 +1002,8 @@ window.SEQ = (function(){
            sezione): lo schianto finisce prima che salga Perché noi. */
         trigger:'#s-piuma', start:'top top', end:'top -120%',
         scrub:true, invalidateOnRefresh:true,
-        onUpdate(self){ inCaduta(self.progress); caduta.ultimo = fot(self.progress); BRICK.draw(fot(self.progress), luce()); },
-        onRefresh(self){ if(self.progress > 0){ inCaduta(self.progress); BRICK.draw(fot(self.progress), luce()); } }
+        onUpdate(self){ inCaduta(self.progress); caduta.ultimo = fot(self.progress); BRICK.draw(fot(self.progress)); },
+        onRefresh(self){ if(self.progress > 0){ inCaduta(self.progress); BRICK.draw(fot(self.progress)); } }
       });
 
       /* Il congedo (dissolvenza 62%→78%) è stato tolto il 2026-09-24:
@@ -1032,15 +1026,10 @@ window.SEQ = (function(){
         const el = document.querySelector(sel);
         if(el) BRICK.monta(el, 0, 1);
       });
-      BRICK.preload(stretto.matches);
+      BRICK.preload();
     }
-    /* Dal 2026-09-24 la 02, la 03 e la piuma sono tutte chiare: il
-       mattone posato è sempre quello scuro su cemento. Prima si leggeva
-       --t all'avvio, che in cima alla pagina è notte, e sul telefono
-       compariva il mattone chiaro sul fondo chiaro. */
-    const luce = 1;
     /* i frame arrivano in differita: si ridipinge quando ci sono */
-    const dipingi = ()=> BRICK.draw(1, luce);
+    const dipingi = ()=> BRICK.draw(1);
     dipingi();
     setTimeout(dipingi, 400);
     setTimeout(dipingi, 1600);
@@ -1076,9 +1065,9 @@ window.SEQ = (function(){
        primo che si vede, e in coda arrivava dopo tutto il resto (al
        primo scroll c'era solo l'ombra). Poi solo quelli che servono:
        da U0 in poi, uno su due — un terzo dei file del bake. */
-    BRICK.anticipa(U0, true);
+    BRICK.anticipa(U0);
     const primo = Math.round(U0 * (BRICK.N - 1));
-    BRICK.preload(true, i => i >= primo && (i - primo) % 2 === 0);
+    BRICK.preload(i => i >= primo && (i - primo) % 2 === 0);
     BRICK.opacita(1);
 
     /* Il bake: sospeso a U0, cade fino all'impatto (0,62 = m_075) e poi
@@ -1093,8 +1082,8 @@ window.SEQ = (function(){
       trigger:titolo,
       start:titolo.dataset.igniteStartM || 'top 95%',
       end:  titolo.dataset.igniteEndM   || 'bottom 22%',
-      onUpdate:s => BRICK.draw(fot(s.progress), 1),
-      onRefresh:s => BRICK.draw(fot(s.progress), 1)
+      onUpdate:s => BRICK.draw(fot(s.progress)),
+      onRefresh:s => BRICK.draw(fot(s.progress))
     });
 
     /* ── gli attraversamenti (quinta versione, committente 2026-09-25) ──
@@ -1163,7 +1152,7 @@ window.SEQ = (function(){
     aggiorna(true);
 
     /* i fotogrammi arrivano in differita: si ridipinge quando ci sono */
-    const ridipingi = ()=> BRICK.draw(fot(st.progress), 1);
+    const ridipingi = ()=> BRICK.draw(fot(st.progress));
     ridipingi();
     setTimeout(ridipingi, 600);
     setTimeout(ridipingi, 2000);

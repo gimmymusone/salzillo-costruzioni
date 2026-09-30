@@ -12,8 +12,7 @@
    con un loop rAF. Il mattone è un oggetto in primo piano, in tre
    slot diversi, mosso dallo scroll e non dal tempo — e soprattutto
    metterlo in FX avrebbe sfrattato il campo di filamenti, che è
-   proprio quello che va tenuto. Il contratto che conta l'ha
-   ereditato lo stesso: `onLight`, identico a quello di feather.js.
+   proprio quello che va tenuto.
 
    Un solo movimento attraversa i tre capitoli: il mattone scende
    lungo la 4 e la 5 e si schianta nella 6. È l'arco della
@@ -28,62 +27,47 @@ window.BRICK = (function(){
      rifatti tenendo gli stessi nomi, e il browser serviva i vecchi
      dalla cache senza dare segno. Rifatto il bake, si alza il numero. */
   const VER = 2;
-  const percorso = valore => i =>
-    `assets/mattone/${valore}/m_${String(i+1).padStart(3,'0')}.webp?v=${VER}`;
+  const percorso = i =>
+    `assets/mattone/scuro/m_${String(i+1).padStart(3,'0')}.webp?v=${VER}`;
 
-  const slot = [];   /* {el, seqChiaro, seqScuro, da, a} */
+  const slot = [];   /* {el, seq, cv, da, a} */
 
-  /* Velo del congedo: moltiplica l'opacità delle due pelli senza
-     toccare la dissolvenza chiaro↔scuro, che resta guidata da `luce`.
-     A 1 (il default) non fa nulla. */
+  /* Velo del congedo: moltiplica l'opacità del mattone. A 1 (il
+     default) non fa nulla. */
   let velo = 1;
 
-  /* Le due versioni di valore sono due sequenze gemelle: si
-     dissolve dall'una all'altra invece di ritingere i pixel, così
-     l'inversione è quella vera del bake — mattone bianco su notte,
-     scuro su cemento. `onLight` fa da manopola, come nei filamenti. */
+  /* Una sola pelle, quella scura: dal 2026-09-24 la 02, la 03 e la
+     piuma sono tutte chiare e il mattone chiaro-su-notte non compariva
+     più da nessuna parte (verificato scorrendo tutta la pagina, desktop
+     e telefono). La sequenza gemella e la dissolvenza fra le due sono
+     state tolte il 2026-09-30. */
   function monta(el, da, a){
     if(!el || !window.FRAMESEQ) return;
-    const chiaro = document.createElement('canvas');
-    const scuro  = document.createElement('canvas');
-    chiaro.className = 'mattone__pel mattone__pel--chiaro';
-    scuro.className  = 'mattone__pel mattone__pel--scuro';
-    el.appendChild(chiaro);
-    el.appendChild(scuro);
-    const s = {
-      el,
-      chiaro: FRAMESEQ(chiaro, {count:N, path:percorso('chiaro')}),
-      scuro:  FRAMESEQ(scuro,  {count:N, path:percorso('scuro')}),
-      cvChiaro: chiaro, cvScuro: scuro,
-      da, a
-    };
+    const cv = document.createElement('canvas');
+    cv.className = 'mattone__pel';
+    el.appendChild(cv);
+    const s = { el, seq: FRAMESEQ(cv, {count:N, path:percorso}), cv, da, a };
     slot.push(s);
     return s;
   }
 
-  /* soloScuro: sul telefono le sezioni del mattone sono sempre chiare e
-     la pelle chiara non si vede mai — inutile scaricarla (2026-09-25) */
-  function preload(soloScuro, filtro){
-    slot.forEach(s=>{ if(!soloScuro) s.chiaro.preload(filtro); s.scuro.preload(filtro); });
+  function preload(filtro){
+    slot.forEach(s=> s.seq.preload(filtro));
   }
   /* il fotogramma p (0…1) davanti a tutta la coda di caricamento */
-  function anticipa(p, soloScuro){
-    slot.forEach(s=>{ if(!soloScuro) s.chiaro.anticipa(p); s.scuro.anticipa(p); });
+  function anticipa(p){
+    slot.forEach(s=> s.seq.anticipa(p));
   }
 
-  /* p = progresso globale 0…1 dell'intero arco; luce = 0 notte, 1 cemento */
-  function draw(p, luce){
+  /* p = progresso globale 0…1 dell'intero arco */
+  function draw(p){
     slot.forEach((s, i)=>{
       const q = s.a > s.da ? (p - s.da) / (s.a - s.da) : 0;
       s.ultimo = Math.max(0, Math.min(1, q));
-      s.ultimaLuce = luce;
-      s.chiaro.draw(s.ultimo);
-      s.scuro.draw(s.ultimo);
+      s.seq.draw(s.ultimo);
       /* il velo del congedo vale solo per l'ultimo slot, quello della
          caduta: gli altri due stanno in capitoli che lì sono già passati */
-      const v = i === slot.length - 1 ? velo : 1;
-      s.cvChiaro.style.opacity = (1 - luce) * v;
-      s.cvScuro.style.opacity  = luce * v;
+      s.cv.style.opacity = i === slot.length - 1 ? velo : 1;
     });
   }
 
@@ -94,10 +78,7 @@ window.BRICK = (function(){
   function opacita(v){
     velo = Math.max(0, Math.min(1, v));
     const s = slot[slot.length - 1];
-    if(!s) return;
-    const luce = s.ultimaLuce || 0;
-    s.cvChiaro.style.opacity = (1 - luce) * velo;
-    s.cvScuro.style.opacity  = luce * velo;
+    if(s) s.cv.style.opacity = velo;
   }
 
   /* al resize il canvas si ridimensiona e va ridisegnato: si ripete
@@ -105,8 +86,7 @@ window.BRICK = (function(){
   function resize(){
     slot.forEach(s=>{
       const t = s.ultimo || 0;
-      s.chiaro.draw(t, true);
-      s.scuro.draw(t, true);
+      s.seq.draw(t, true);
     });
   }
   addEventListener('resize', resize);
