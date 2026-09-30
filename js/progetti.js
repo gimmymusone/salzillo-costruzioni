@@ -28,7 +28,7 @@ window.PROGETTI = (function(){
     'villette-portico': {nome:'Villette Portico', categoria:NUOVE, tipo:DC, luogo:DC,           stato:DC, foto:foto('villette-portico', 5)},
     'residence-curti':  {nome:'Residence Curti',  categoria:NUOVE, tipo:DC, luogo:DC,           stato:DC, foto:foto('residence-curti', 5)},
     'via-gorizia':      {nome:'Via Gorizia',      categoria:NUOVE, tipo:DC, luogo:'Mondragone', stato:DC, foto:foto('via-gorizia', 5)},
-    'via-novelli':      {nome:'Via Novelli',      categoria:NUOVE, tipo:DC, luogo:DC,           stato:'In costruzione', foto:[]}
+    'via-novelli':      {nome:'Via Novelli',      categoria:NUOVE, tipo:DC, luogo:DC,           stato:DC, foto:[]}
   };
 
   const scheda = document.getElementById('scheda');

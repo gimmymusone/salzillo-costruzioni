@@ -500,7 +500,16 @@ html{font-size:1.05vw}
    loro. Prima erano due lastroni da 56vw × 58vh: era quello a far
    sembrare la galleria ferma, non la durata — che è già più lenta
    della reference e non va toccata. */
-#s-cantieri, #s-ristrutturazioni{height:500vh;background:var(--bg)}
+#s-cantieri{height:500vh;background:var(--bg)}
+/* Ristrutturazioni con la disposizione di Perché noi (2026-09-30) */
+/* 170vh col contenuto incollato: le chip in basso hanno il tempo di comparire */
+#s-ristrutturazioni{background:var(--bg);height:170vh}
+#s-ristrutturazioni .perche{position:sticky;top:0;height:100vh}
+@media (max-width:900px){ #s-ristrutturazioni{height:auto} #s-ristrutturazioni .perche{position:static;height:auto} }
+.orbita .orbita__titolo--lungo{font-size:min(7vh,3.3vw)}
+#s-ristrutturazioni .chip-o--3{left:-8%}
+#s-ristrutturazioni .chip-o--4{right:-8%}
+@media (max-width:900px){ #s-ristrutturazioni .chip-o--3, #s-ristrutturazioni .chip-o--4{left:auto;right:auto} .orbita .orbita__titolo--lungo{font-size:8.5vw} }
 #s-cantieri .sticky--wide, #s-ristrutturazioni .sticky--wide{
   justify-content:center;padding:2.5rem 0;
 }

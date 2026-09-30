@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=TASA+Orbiter:wght@400..800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css?v=32">
-<link rel="stylesheet" href="css/sections.css?v=83">
+<link rel="stylesheet" href="css/sections.css?v=86">
 </head>
 <body>
 
@@ -478,41 +478,41 @@
        le foto NO: in assets/cantieri/ ci sono solo i quattro cantieri di
        nuova costruzione, e riusarli qui sarebbe inventare progetti.
        I posti restano dichiarati, come gli altri placeholder in pagina. -->
-  <section id="s-ristrutturazioni" data-flip="1" data-flip-from="1">
-    <div class="sticky sticky--wide galleria">
-      <!-- Niente foto: i SERVIZI che offriamo (committente, 2026-09-30).
-           Ogni card è un servizio, il suo nome esce in alto al centro;
-           la prima fa da paragrafo di presentazione. -->
-      <h3 class="galleria__nome" id="ristrNome">Ristrutturazioni chiavi in mano</h3>
-      <div class="cases-track" data-nome-out="#ristrNome">
-        <article class="case case--servizio" data-nome="Ristrutturazioni chiavi in mano">
-          <div class="case__testo"><h4 class="case__svc">Ristrutturazioni chiavi in mano</h4><p class="sec-body">Dal rilievo alla consegna delle chiavi: progetto, pratiche, cantiere e finiture con un'unica impresa. Rifacciamo appartamenti, ville e condomini senza passare la mano.</p></div>
-          <span class="case__n">[ 1 ]</span>
-        </article>
-        <article class="case case--servizio" data-nome="Consolidamento e antisismica">
-          <div class="case__testo"><h4 class="case__svc">Consolidamento e antisismica</h4><p class="sec-body">Adeguamenti statici e antisismici, rinforzi di solai e fondazioni: la casa resta la tua, diventa più sicura.</p></div>
-          <span class="case__n">[ 2 ]</span>
-        </article>
-        <article class="case case--servizio" data-nome="Efficientamento energetico">
-          <div class="case__testo"><h4 class="case__svc">Efficientamento energetico</h4><p class="sec-body">Cappotto termico, infissi e isolamento per portare l'edificio a una classe energetica elevata e abbassare i consumi.</p></div>
-          <span class="case__n">[ 3 ]</span>
-        </article>
-        <article class="case case--servizio" data-nome="Pareti in cartongesso">
-          <div class="case__testo"><h4 class="case__svc">Pareti in cartongesso</h4><p class="sec-body">Tramezzi e controsoffitti posati in fretta e senza macerie, con isolamento interno e ottime prestazioni termiche e acustiche.</p></div>
-          <span class="case__n">[ 4 ]</span>
-        </article>
-        <article class="case case--servizio" data-nome="Facciate e coperture">
-          <div class="case__testo"><h4 class="case__svc">Facciate e coperture</h4><p class="sec-body">Rifacimento di prospetti, balconi, tetti e impermeabilizzazioni.</p></div>
-          <span class="case__n">[ 5 ]</span>
-        </article>
-        <article class="case case--servizio" data-nome="Interni e finiture">
-          <div class="case__testo"><h4 class="case__svc">Interni e finiture</h4><p class="sec-body">Bagni, cucine, pavimenti, impianti: rifacimenti integrali di unità e condomini.</p></div>
-          <span class="case__n">[ 6 ]</span>
-        </article>
+<section id="s-ristrutturazioni" data-flip="1" data-flip-from="1">
+    <!-- Disposizione di Perché noi, su fondo chiaro (committente,
+         2026-09-30): il titolo al centro e i sei servizi che gli orbitano. -->
+    <div class="perche">
+      <p class="sec-label fade-in">SERVIZI/ RISTRUTTURAZIONI</p>
+      <div class="orbita">
+        <h2 class="orbita__titolo orbita__titolo--lungo">
+          <span class="line"><span class="line__in">Ristrutturazioni</span></span>
+        </h2>
+        <details class="chip-o chip-o--1 fade-in">
+          <summary><i class="chip-o__i"></i><span>Chiavi in mano</span><b>+</b></summary>
+          <p class="sec-body">Progetto, pratiche, cantiere e finiture con un'unica impresa.</p>
+        </details>
+        <details class="chip-o chip-o--2 fade-in">
+          <summary><i class="chip-o__i"></i><span>Facciate e coperture</span><b>+</b></summary>
+          <p class="sec-body">Prospetti, balconi, tetti e impermeabilizzazioni.</p>
+        </details>
+        <details class="chip-o chip-o--3 fade-in">
+          <summary><i class="chip-o__i"></i><span>Consolidamento e antisismica</span><b>+</b></summary>
+          <p class="sec-body">Rinforzi di solai e fondazioni, adeguamenti statici.</p>
+        </details>
+        <details class="chip-o chip-o--4 fade-in">
+          <summary><i class="chip-o__i"></i><span>Efficientamento energetico</span><b>+</b></summary>
+          <p class="sec-body">Cappotto, infissi e isolamento per una classe energetica elevata.</p>
+        </details>
+        <details class="chip-o chip-o--5 fade-in">
+          <summary><i class="chip-o__i"></i><span>Pareti in cartongesso</span><b>+</b></summary>
+          <p class="sec-body">Tramezzi e controsoffitti veloci, puliti, isolati.</p>
+        </details>
+        <details class="chip-o chip-o--6 fade-in">
+          <summary><i class="chip-o__i"></i><span>Interni e finiture</span><b>+</b></summary>
+          <p class="sec-body">Bagni, cucine, pavimenti e impianti.</p>
+        </details>
       </div>
-      <p class="galleria__cat"><span>SERVIZI/</span>RISTRUTTURAZIONI</p>
-      <!-- salta il resto della galleria (committente, 2026-09-24) -->
-      <a class="salta" href="#s-cantieri">Vai a Nuove costruzioni <span aria-hidden="true">&darr;</span></a>
+      <a class="btn-accent perche__cta fade-in" href="#s-contatti">Chiedi un sopralluogo</a>
     </div>
   </section>
 
@@ -550,7 +550,7 @@
           <a class="case__apri" href="#progetto/via-gorizia" data-progetto="via-gorizia" aria-label="Apri il progetto Via Gorizia"><span>Apri progetto &rarr;</span></a>
         </article>
         <!-- Via Novelli, in costruzione (committente, 2026-09-30): le foto arrivano dopo -->
-        <article class="case case--vuota" data-nome="Via Novelli · in costruzione">
+        <article class="case case--vuota" data-nome="Via Novelli">
           <div class="case__posto"><span class="todo">[DA CONFERMARE: foto]</span></div>
           <span class="case__n">[ 5 ]</span>
           <a class="case__apri" href="#progetto/via-novelli" data-progetto="via-novelli" aria-label="Apri il progetto Via Novelli"><span>Apri progetto &rarr;</span></a>
@@ -788,6 +788,6 @@
   document.querySelectorAll('a[data-vuoto]').forEach(a=>a.addEventListener('click', e=>e.preventDefault()));
 </script>
 <script src="js/pagine.js?v=5"></script>
-<script src="js/progetti.js?v=2"></script>
+<script src="js/progetti.js?v=3"></script>
 </body>
 </html>
