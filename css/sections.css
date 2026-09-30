@@ -507,6 +507,9 @@ html{font-size:1.05vw}
 #s-ristrutturazioni .perche{position:sticky;top:0;height:100vh}
 @media (max-width:900px){ #s-ristrutturazioni{height:auto} #s-ristrutturazioni .perche{position:static;height:auto} }
 .orbita .orbita__titolo--lungo{font-size:min(7vh,3.3vw)}
+/* il prezzo sotto il titolo, in blu: «da» piccolissimo, la cifra grande */
+.orbita__prezzo{display:flex;align-items:baseline;gap:.25em;margin-top:.25em;color:var(--marchio-blu);font-size:.9em;line-height:1;text-transform:none}
+.orbita__prezzo small{font-size:.22em;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
 #s-ristrutturazioni .chip-o--3{left:-8%}
 #s-ristrutturazioni .chip-o--4{right:-8%}
 @media (max-width:900px){ #s-ristrutturazioni .chip-o--3, #s-ristrutturazioni .chip-o--4{left:auto;right:auto} .orbita .orbita__titolo--lungo{font-size:8.5vw} }
