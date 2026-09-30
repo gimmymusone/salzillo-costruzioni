@@ -257,7 +257,7 @@ html{font-size:1.05vw}
 /* 600vh = 1.620 px per riga a viewport 1080, la misura del faretto
    nella reference. A 320vh ne dava 864 e il faretto passava alla riga
    dopo prima che si leggesse quella accesa. */
-#s-piuma{height:400vh}
+#s-piuma{height:260vh}   /* 2026-09-30: ancora più rapida su richiesta */
 /* Il blocco è ancorato a destra ma le righe partono tutte dalla
    stessa colonna, come DEFY / GRAVITY / WITH / ELEGANCE in img-17:
    `width:max-content` fa sì che il blocco si stringa sulla riga più
