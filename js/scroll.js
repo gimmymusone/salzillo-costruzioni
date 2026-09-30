@@ -804,9 +804,13 @@ window.SEQ = (function(){
        testo spariva prima di essere letto. */
     /* Anche il congedo di "in vendita": sul telefono le schede sono in
        colonna e l'ultima sfumava mentre la si stava ancora leggendo. */
+    /* 02 e 03 (2026-09-30): il testo se ne va solo quando il mattone sta
+       per uscire dal basso dello schermo. Tarati sui capitoli da 230vh:
+       il mattone della 02 esce con la 03 all'85% dello schermo, quello
+       della 03 con la piuma al 100%. */
     const congedi = [['#s02-struttura','#s01-arte .sticky',     'top 160%','top 120%'],
-                     ['#s03-finiture','#s02-struttura .sticky','top 220%','top 175%'],
-                     ['#s-piuma',     '#s03-finiture .sticky', 'top 220%','top 175%'],
+                     ['#s03-finiture','#s02-struttura .sticky','top 115%','top 85%'],
+                     ['#s-piuma',     '#s03-finiture .sticky', 'top 130%','top 100%'],
                      ['#s-storia',    '#s-vendita .vendita',   'top bottom','top 78%']]
       .map(c => c.concat('(min-width: 901px)'));
     const mmCongedi = gsap.matchMedia();
@@ -946,7 +950,19 @@ window.SEQ = (function(){
        03 (data-rivela in index.html) sono centrate sugli stessi punti.
        Il salto da y = 100 (appena sotto lo schermo) a y = −40 (appena
        sopra) avviene a mattone invisibile, quindi non si vede. */
-    const CENTRI = [0.3, 3.8, 7.0];      /* 7,0 = la piuma arriva in cima */
+    /* I centri si leggono dalla pagina (2026-09-30): erano scritti a mano
+       per capitoli da 350vh, e accorciandoli il mattone andava fuori
+       tempo. 0,3 dopo il top della 02, 0,3 dopo il top della 03, e il
+       top della piuma. */
+    const CENTRI = [0.3, 3.8, 7.0];
+    const topDi = sel => document.querySelector(sel).getBoundingClientRect().top + scrollY;
+    const misuraCentri = ()=>{
+      const t02 = topDi('#s02-struttura');
+      CENTRI[1] = 0.3 + (topDi('#s03-finiture') - t02) / innerHeight;
+      CENTRI[2] = (topDi('#s-piuma') - t02) / innerHeight;
+    };
+    misuraCentri();
+    ScrollTrigger.addEventListener('refreshInit', misuraCentri);
     const GIRO = 140;                     /* da −40 a 100: un attraversamento */
     const PRIMA = 40;                     /* velocità d'ingresso nella 02, in % di schermo per schermo */
     const xDa = CENTRI[0] - (A - DA) / PRIMA;
