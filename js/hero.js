@@ -22,7 +22,7 @@ window.HERO = (function(){
     [0,   'Scaviamo le fondamenta…'],
     [.33, 'Posiamo i mattoni…'],
     [.66, 'Montiamo il tetto…'],
-    [.97, 'Vi consegniamo le chiavi'],
+    [.87, 'Vi consegniamo le chiavi'],
   ];
   const fase = v => FASI.filter(f => v >= f[0]).pop()[1];
 
