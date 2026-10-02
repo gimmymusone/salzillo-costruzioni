@@ -15,6 +15,18 @@ window.HERO = (function(){
   const preloader = $('#preloader');
   const preRule   = $('#preRule');
   const prePct    = $('#prePct');
+  const preFase   = $('#preFase');
+
+  /* le fasi del cantiere, una per soglia di caricamento */
+  const FASI = [
+    [0,   'Scaviamo le fondamenta…'],
+    [.2,  'Gettiamo il cemento…'],
+    [.4,  'Alziamo i pilastri…'],
+    [.6,  'Posiamo i mattoni…'],
+    [.8,  'Montiamo il tetto…'],
+    [.97, 'Vi consegniamo le chiavi'],
+  ];
+  const fase = v => FASI.filter(f => v >= f[0]).pop()[1];
 
   const EASE_OUT = 'power3.out';
   const EASE_IO  = 'power2.inOut';
@@ -29,6 +41,7 @@ window.HERO = (function(){
     gsap.set(preRule,   {width:'0%'});
     gsap.set('.preloader__lockup', {autoAlpha:1, y:0});
     prePct.textContent = '0%';
+    preFase.textContent = fase(0);
 
     gsap.set(['.hd', '.grid', '.lockup', '.corner'], {autoAlpha:0});
     gsap.set('.logo-morph', {autoAlpha:0, scale:.92, transformOrigin:'50% 50%'});
@@ -77,6 +90,8 @@ window.HERO = (function(){
       mostrato = v;
       prePct.textContent = Math.round(v * 100) + '%';
       preRule.style.width = (v * 100) + '%';
+      const t = fase(v);
+      if(preFase.textContent !== t) preFase.textContent = t;
     };
 
     tl = gsap.timeline({defaults:{ease:EASE_OUT}});
@@ -98,6 +113,7 @@ window.HERO = (function(){
           counter.v = 1; mostrato = -1;
           prePct.textContent = '100%';
           preRule.style.width = '100%';
+          preFase.textContent = fase(1);
           tl.play();
         }, 45000);
       })
@@ -106,7 +122,7 @@ window.HERO = (function(){
       .to(preloader, {backgroundColor:'#0F0F0F', duration:.9, ease:EASE_IO}, '+=0.15')
       .to('.preloader__lockup .lockup__a', {color:'#7A7878', duration:.9}, '<')
       .to('.preloader__lockup .lockup__b', {color:'#FFFFFF', duration:.9}, '<')
-      .to(prePct,   {autoAlpha:0, duration:.4}, '<')
+      .to([prePct, preFase], {autoAlpha:0, duration:.4}, '<')
       .to(preloader,{autoAlpha:0, duration:.6, ease:EASE_IO}, '-=0.15')
       .set(preloader,{pointerEvents:'none'})
 
@@ -166,7 +182,7 @@ window.HERO = (function(){
     gsap.set(preloader, {pointerEvents:'auto', backgroundColor:'#AEAAAA'});
     gsap.set('.preloader__lockup .lockup__a', {color:'#0F0F0F'});
     gsap.set('.preloader__lockup .lockup__b', {color:'#6E6A6A'});
-    gsap.set(prePct, {autoAlpha:1});
+    gsap.set([prePct, preFase], {autoAlpha:1});
     setInitial();
     build();
   }

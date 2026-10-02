@@ -32,7 +32,9 @@
    che arrivano per ultime: senza, il titolo resta semplicemente
    davanti, ed è una mancanza che non si nota). */
 window.CODA = (function(){
-  const MAX = 6;
+  /* 16 in parallelo: GitHub Pages serve in HTTP/2, e con ~530 file
+     piccoli il limite era la latenza, non la banda (prima 6). */
+  const MAX = 16;
   const cache = new Map();          /* url → {im, fatto, ok, cbs} */
   const file  = [[], [], []];
   let attivi  = 0;
