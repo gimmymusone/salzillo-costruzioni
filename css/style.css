@@ -501,7 +501,9 @@ body{
    cantiere: il caricamento aspetta tutti i file (≈25 MB), quindi deve
    far vedere che sta lavorando (2026-10-02). */
 .preloader__pct{position:absolute;left:50%;bottom:50%;transform:translateX(-50%);margin-bottom:.6cqw;font-size:clamp(104px,13cqw,220px);font-weight:700;line-height:.8;letter-spacing:-.04em;font-variant-numeric:tabular-nums;color:#0F0F0F}
-.preloader__fase{position:absolute;left:0;right:0;top:50%;margin-top:1.4cqw;text-align:center;font-size:clamp(11px,1cqw,14px);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#0F0F0F;opacity:.7}
+.preloader__fase{position:absolute;left:0;right:0;top:50%;margin-top:1.4cqw;text-align:center;font-size:clamp(11px,1cqw,14px);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#0F0F0F;opacity:.7;
+  /* monospazio come HyperText: le lettere che girano non fanno ballare la riga */
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:600}
 
 /* stato iniziale pre-intro */
 /* `.is-intro` sta sullo stage: l'header, che ora è suo fratello e non

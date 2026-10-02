@@ -28,6 +28,30 @@ window.HERO = (function(){
   ];
   const fase = v => FASI.filter(f => v >= f[0]).pop()[1];
 
+  /* Effetto HyperText (magicui), senza React: le lettere girano a caso e
+     si fissano una alla volta da sinistra in 0,8 s. Il testo vero sta in
+     aria-label, così chi usa un lettore di schermo non sente le lettere
+     a caso. */
+  const LETTERE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const FERMO = matchMedia('(prefers-reduced-motion:reduce)').matches;
+  let faseScritta = '', rafFase = 0;
+  function scriviFase(t){
+    if(t === faseScritta) return;
+    faseScritta = t;
+    preFase.setAttribute('aria-label', t);
+    cancelAnimationFrame(rafFase);
+    if(FERMO){ preFase.textContent = t; return; }
+    const t0 = performance.now(), chars = [...t];
+    const giro = ()=>{
+      const k = Math.min((performance.now() - t0) / 800, 1) * chars.length;
+      preFase.textContent = chars
+        .map((c, i)=> i < k || !/\p{L}/u.test(c) ? c : LETTERE[Math.random() * 26 | 0])
+        .join('');
+      if(k < chars.length) rafFase = requestAnimationFrame(giro);
+    };
+    giro();
+  }
+
   const EASE_OUT = 'power3.out';
   const EASE_IO  = 'power2.inOut';
 
@@ -41,7 +65,7 @@ window.HERO = (function(){
     gsap.set(preRule,   {width:'0%'});
     gsap.set('.preloader__lockup', {autoAlpha:1, y:0});
     prePct.textContent = '0%';
-    preFase.textContent = fase(0);
+    faseScritta = ''; scriviFase(fase(0));
 
     gsap.set(['.hd', '.grid', '.lockup', '.corner'], {autoAlpha:0});
     gsap.set('.logo-morph', {autoAlpha:0, scale:.92, transformOrigin:'50% 50%'});
@@ -90,8 +114,7 @@ window.HERO = (function(){
       mostrato = v;
       prePct.textContent = Math.round(v * 100) + '%';
       preRule.style.width = (v * 100) + '%';
-      const t = fase(v);
-      if(preFase.textContent !== t) preFase.textContent = t;
+      scriviFase(fase(v));
     };
 
     tl = gsap.timeline({defaults:{ease:EASE_OUT}});
@@ -113,7 +136,7 @@ window.HERO = (function(){
           counter.v = 1; mostrato = -1;
           prePct.textContent = '100%';
           preRule.style.width = '100%';
-          preFase.textContent = fase(1);
+          scriviFase(fase(1));
           tl.play();
         }, 45000);
       })
