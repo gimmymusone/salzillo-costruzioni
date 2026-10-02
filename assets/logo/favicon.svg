@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1.2 -1.2 2.4 2.4">
+  <!-- Icona della scheda: marchio.svg in bianco su quadrato blu
+       istituzionale, perché a 16px il tratto sottile su trasparente
+       sparisce sulle barre chiare e su quelle scure. -->
+  <rect x="-1.2" y="-1.2" width="2.4" height="2.4" rx="0.42" fill="#4A6C93"/>
+  <g fill="none" stroke="#fff" stroke-linecap="round" transform="scale(.92)">
+    <circle cx="0" cy="0" r="0.932" stroke-width="0.136"/>
+    <path d="M 0.3527 -0.8412 A 0.95 0.95 0 0 0 -0.155 0 A 0.74 0.74 0 0 1 -0.5084 0.631" stroke-width="0.105"/>
+    <path d="M 0.5827 -0.5501 A 0.534 0.534 0 1 0 0.5827 0.5161" stroke-width="0.105"/>
+  </g>
+</svg>
