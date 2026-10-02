@@ -20,10 +20,8 @@ window.HERO = (function(){
   /* le fasi del cantiere, una per soglia di caricamento */
   const FASI = [
     [0,   'Scaviamo le fondamenta…'],
-    [.2,  'Gettiamo il cemento…'],
-    [.4,  'Alziamo i pilastri…'],
-    [.6,  'Posiamo i mattoni…'],
-    [.8,  'Montiamo il tetto…'],
+    [.33, 'Posiamo i mattoni…'],
+    [.66, 'Montiamo il tetto…'],
     [.97, 'Vi consegniamo le chiavi'],
   ];
   const fase = v => FASI.filter(f => v >= f[0]).pop()[1];
