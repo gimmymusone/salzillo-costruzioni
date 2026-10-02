@@ -497,13 +497,16 @@ body{
 .preloader__lockup{display:flex;flex-direction:column;align-items:center;line-height:1.04;font-weight:700;font-size:clamp(16px,2.6cqw,42px);letter-spacing:-.01em;text-transform:uppercase}
 .preloader__lockup .lockup__a{color:#0F0F0F}
 .preloader__lockup .lockup__b{color:#6E6A6A}
-/* Percentuale grande appoggiata sulla linea, e sotto la fase del
-   cantiere: il caricamento aspetta tutti i file (≈25 MB), quindi deve
-   far vedere che sta lavorando (2026-10-02). */
-.preloader__pct{position:absolute;left:50%;bottom:50%;transform:translateX(-50%);margin-bottom:.6cqw;font-size:clamp(104px,13cqw,220px);font-weight:700;line-height:.8;letter-spacing:-.04em;font-variant-numeric:tabular-nums;color:#0F0F0F}
-.preloader__fase{position:absolute;left:0;right:0;top:50%;margin-top:1.4cqw;text-align:center;font-size:clamp(11px,1cqw,14px);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#0F0F0F;opacity:.7;
+/* La linea di caricamento fa da asse: sopra la percentuale grande,
+   sotto la fase del cantiere. Il caricamento
+   aspetta tutti i file (≈25 MB), quindi deve far vedere che sta
+   lavorando (2026-10-02). La fase è 16–20px, tutta in grassetto,
+   piena; la percentuale 88–185px. */
+.preloader{--fase-fs:clamp(16px,1.45cqw,20px);--fase-gap:max(8px,.8cqw)}
+.preloader__fase{position:absolute;left:0;right:0;top:50%;margin-top:calc(var(--fase-gap) * 1.5);text-align:center;font-size:var(--fase-fs);line-height:1.2;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#0F0F0F;
   /* monospazio come HyperText: le lettere che girano non fanno ballare la riga */
-  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:600}
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.preloader__pct{position:absolute;left:50%;bottom:50%;transform:translateX(-50%);margin-bottom:var(--fase-gap);font-size:clamp(88px,11cqw,185px);font-weight:700;line-height:.8;letter-spacing:-.04em;font-variant-numeric:tabular-nums;color:#0F0F0F}
 
 /* stato iniziale pre-intro */
 /* `.is-intro` sta sullo stage: l'header, che ora è suo fratello e non
